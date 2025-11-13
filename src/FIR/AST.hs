@@ -65,13 +65,13 @@ import Data.Typeable
 import Data.Kind
   ( Type, Constraint )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
-  ( EGADT )
-
 -- tree-view
 import Data.Tree.View
   ( showTree )
+
+-- variant
+import Data.Variant.EGADT
+  ( EGADT )
 
 -- fir
 import FIR.AST.ControlFlow

@@ -28,21 +28,21 @@ common base-common
 
     build-depends:
         base
-          >= 4.13     && < 4.19
+          >= 4.13     && < 4.23
       , directory
           ^>= 1.3.3.0
       , filepath
-          ^>= 1.4.2.1
+          >= 1.4.2.1  && < 1.6
       , finite-typelits
-          ^>= 0.1.4.2
+          >= 0.1.4.2  && < 0.3
       , template-haskell
-          >= 2.15     && < 2.21
+          >= 2.15     && < 2.25
       , text-short
           >= 0.1.4    && < 0.2
       , vector
           >= 0.12.0.3 && < 0.14
       , vector-sized
-          >= 1.4.0.0  && < 1.6
+          >= 1.4.0.0  && < 1.7
 
     default-language:
       Haskell2010
@@ -64,21 +64,22 @@ common vulkan-common
 
   build-depends:
       bytestring
-        >= 0.10.9.0 && < 0.12
+        >= 0.10.9.0 && < 0.13
     , JuicyPixels
         ^>= 3.3.2
     , lens
-        >= 4.18     && < 5.3
+        >= 4.18     && < 5.4
     , logging-effect
-        ^>= 1.3.6
+        >= 1.3.6    && < 1.5
     , resourcet
-        ^>= 1.2.2
+        >= 1.2.2    && < 1.4
     , sdl2
-        >= 2.5.0 && <= 2.6
+        >= 2.5.0   &&  < 2.5.5.1
+    -- sdl2-2.5.5.1 doesn't compile for me?
     , transformers
         >= 0.5.6.2 && < 0.7
     , vulkan
-        >= 3.23 && < 3.24
+        >= 3.26 && < 3.27
 
 common apps-common
 
@@ -120,7 +121,7 @@ common extras-common
 
     build-depends:
         containers
-         ^>= 0.6.2.1
+          >= 0.6.2.1 && < 0.9
       , generic-lens
           >= 1.2.0.1 && < 2.0
 
@@ -128,9 +129,9 @@ common dear-imgui
 
   build-depends:
       dear-imgui
-        >= 2.0 && < 2.2
+        >= 2.0 && < 2.5
     , text
-        >= 2.0 && < 2.1
+        >= 2.0 && < 2.2
 
 ----------------------------------------------------------------
 -- Shared library components used by all the examples.
@@ -186,7 +187,7 @@ library
         fir
       , fir-examples-paths
       , fsnotify
-          ^>= 0.3.0.1
+          >= 0.3.0.1 && < 0.5
       , mtl
           >= 2.2.2 && < 2.4
       , stm
@@ -514,7 +515,7 @@ executable RayTracing
   build-depends:
       raytracing-shaders
     , constraints-extras
-        >= 0.3.0.2 && < 0.4
+        >= 0.3.0.2 && < 0.5
     , dependent-map
         >= 0.4.0.0 && < 0.5
     , dlist
@@ -522,7 +523,7 @@ executable RayTracing
     , haskeline
         >= 0.8.1.0 && < 0.9
     , random
-        >= 1.2.0   && < 1.3
+        >= 1.2.0   && < 1.4
     , some
         >= 1.0.0.3 && < 1.1
     , unordered-containers

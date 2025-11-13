@@ -66,7 +66,7 @@ results in an error:
 -}
 
 module FIR.Syntax.Images
-  ( -- * Lens focusing on an image texel    
+  ( -- * Lens focusing on an image texel
     ImageTexel
 
   -- * Image query operations

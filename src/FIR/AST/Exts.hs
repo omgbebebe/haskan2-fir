@@ -31,15 +31,15 @@ import Data.Word
 import Data.Tree
  ( Tree(Node) )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
-  ( pattern VF )
-
 -- text-short
 import Data.Text.Short
   ( ShortText )
 import qualified Data.Text.Short as ShortText
   ( unpack )
+
+-- variant
+import Data.Variant.EGADT
+  ( pattern VF )
 
 -- fir
 import Data.Constraint.All

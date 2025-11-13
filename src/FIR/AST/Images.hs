@@ -30,8 +30,8 @@ import GHC.TypeLits
 import Data.Tree
  ( Tree(Node) )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
+-- variant
+import Data.Variant.EGADT
   ( pattern VF )
 
 -- fir

@@ -24,17 +24,6 @@ pkgsSelf: pkgsSuper: {
               haskellPackagesSuper.callHackage "ghc-typelits-knownnat" "0.7.1"
               { };
             bytes = haskellPackagesSuper.callHackage "bytes" "0.16" { };
-            haskus-utils-variant =
-              haskellPackagesSuper.callCabal2nix "haskus-utils-variant"
-              (haskus + /haskus-utils-variant) { };
-            # tests are long
-            haskus-utils-data = pkgsSuper.haskell.lib.dontCheck
-              (haskellPackagesSuper.callCabal2nix "haskus-utils-data"
-                (haskus + /haskus-utils-data) { });
-            haskus-utils-types =
-              haskellPackagesSuper.callCabal2nix "haskus-utils-types"
-              (haskus + /haskus-utils-types) { };
-
             fir = pkgsSuper.haskell.lib.dontCheck
               (haskellPackagesSuper.callCabal2nix "fir" ./. { });
 

@@ -418,7 +418,6 @@ fromHListVec (ConsReplication repl) (x :> xs) = x :. fromHListVec repl xs
 toHListVec :: Replication n a rs -> V n a -> HList rs
 toHListVec NilReplication         _         = HNil
 toHListVec (ConsReplication repl) (x :. xs) = x :> toHListVec repl xs
-toHListVec (ConsReplication _   ) VNil      = error "impossible"
 
 instance GradedSemigroup (V 0 a) Nat where
   type Grade Nat (V 0 a) i = V i a
@@ -687,7 +686,7 @@ instance ( KnownNat n, 1 <= n
          , KnownNat m, 1 <= m
          , Replicated (m*n-1) a rs
          , Length rs ~ (n*m-1), (1 + Length rs) ~ (n*m)
-         , 1 <= (n*m), (m*n) ~ (n*m)     -- help the natnormalise plugin along...
+         , 1 <= (n*m)
          , Replicate (n*m) a ~ (a ': rs) -- type checker unfortunately can't deduce this
          )
       => IsProduct (M m n a) (a ': rs)

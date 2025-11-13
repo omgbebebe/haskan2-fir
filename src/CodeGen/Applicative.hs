@@ -56,12 +56,6 @@ import Unsafe.Coerce
 -- containers
 import qualified Data.Set as Set
 
--- haskus-utils-variant
-import Haskus.Utils.VariantF
-  ( VariantF, ApplyAll, BottomUp(toBottomUp) )
-import Haskus.Utils.EGADT
-  ( EGADT(..), HVariantF(..) )
-
 -- lens
 import Control.Lens
   ( use, assign )
@@ -73,6 +67,12 @@ import Control.Monad.Except
 -- text-short
 import qualified Data.Text.Short as ShortText
   ( pack )
+
+-- variant
+import Data.Variant.VariantF
+  ( VariantF, ApplyAll, BottomUp(toBottomUp) )
+import Data.Variant.EGADT
+  ( EGADT(..), HVariantF(..) )
 
 -- fir
 import CodeGen.Application

@@ -112,9 +112,9 @@ common common
 
   build-depends:
         base
-          >= 4.13     && < 4.19
+          >= 4.13     && < 4.23
       , bytestring
-          >= 0.10.9.0 && < 0.12
+          >= 0.10.9.0 && < 0.13
       , directory
           ^>= 1.3.3.0
 
@@ -122,11 +122,11 @@ common test
 
   build-depends:
         filepath
-          ^>= 1.4.2.1
+           >= 1.4.2.1 && < 1.6
       , process
           ^>= 1.6.3.0
       , text
-           >= 1.2.3.1 && < 2.1
+           >= 1.2.3.1 && < 2.2
 
 library
 
@@ -381,29 +381,27 @@ library
       , binary
           >= 0.8.7.0  && < 0.11
       , containers
-          ^>= 0.6.2.1
+          >= 0.6.2.1  && < 0.9
       , distributive
           ^>= 0.6
       , finite-typelits
-          ^>= 0.1.4.2
+          >= 0.1.4.2  && < 0.3
       , generic-monoid
           ^>= 0.1.0.0
       , ghc-typelits-knownnat
-          ^>= 0.7
+          ^>= 0.8.2
       , ghc-typelits-natnormalise
-          ^>= 0.7
+          ^>= 0.9.0
       , half
           ^>= 0.3
-      , haskus-utils-variant
-          >= 3.0 && < 3.4
       , lens
-          >= 4.18     && < 5.3
+          >= 4.18     && < 5.4
       , mtl
           >= 2.2.2    && < 2.4
       , split
           >= 0.2.3.3  && < 0.3
       , template-haskell
-          >= 2.15     && < 2.21
+          >= 2.15     && < 2.25
       , text-short
           >= 0.1.4    && < 0.2
       , transformers
@@ -412,10 +410,12 @@ library
           ^>= 0.5
       , typelits-witnesses
           >= 0.2.3    && < 0.5
+      , variant
+          ^>= 1.0.1
       , vector
           >= 0.12.0.3 && < 0.14
       , vector-sized
-          >= 1.4.0.0  && < 1.6
+          >= 1.4.0.0  && < 1.7
 
     if flag(sop)
         build-depends:
@@ -461,7 +461,7 @@ test-suite fir-tests
     build-depends:
         fir
       , Cabal
-          >= 3.0.0.0 && < 3.9
+          >= 3.0.0.0 && < 3.17
 
     default-language:
         Haskell2010

@@ -26,8 +26,8 @@ import Data.Kind
 import qualified GHC.Stack
   ( HasCallStack )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
+-- variant
+import Data.Variant.EGADT
   ( pattern VF )
 
 -- fir

@@ -9,8 +9,8 @@ module FIR.AST
   )
   where
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
+-- variant
+import Data.Variant.EGADT
   ( EGADT )
 
 -- fir

@@ -42,12 +42,6 @@ import Unsafe.Coerce
 import Data.ByteString.Lazy
   ( ByteString )
 
--- haskus-utils-variant
-import Haskus.Utils.VariantF
-  ( VariantF, ApplyAll, BottomUp(toBottomUp) )
-import Haskus.Utils.EGADT
-  ( EGADT(..), HVariantF(..) )
-
 -- mtl
 import Control.Monad.Except
   ( throwError )
@@ -59,6 +53,12 @@ import Control.Lens
 -- text-short
 import Data.Text.Short
   ( ShortText )
+
+-- variant
+import Data.Variant.VariantF
+  ( VariantF, ApplyAll, BottomUp(toBottomUp) )
+import Data.Variant.EGADT
+  ( EGADT(..), HVariantF(..) )
 
 -- fir
 import CodeGen.Application

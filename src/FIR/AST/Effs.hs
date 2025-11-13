@@ -33,8 +33,8 @@ import GHC.TypeLits
 import GHC.TypeNats
   ( Nat )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
+-- variant
+import Data.Variant.EGADT
   ( pattern VF )
 
 -- fir

@@ -27,8 +27,8 @@ import Data.Kind
   ( Type )
 import GHC.TypeLits ( Symbol, KnownSymbol )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
+-- variant
+import Data.Variant.EGADT
   ( pattern VF )
 
 -- fir

@@ -85,6 +85,8 @@ import qualified Data.Vector.Sized as V
 
 -- vulkan
 import qualified Vulkan
+import qualified Vulkan as Vulkan.LayerProperties
+  ( LayerProperties(..) )
 import qualified Vulkan as Vulkan.Extent2D
   ( Extent2D(..) )
 import qualified Vulkan as Vulkan.Surface
@@ -118,9 +120,9 @@ vulkanInstanceInfo appName = do
   let
     validationLayer :: Maybe ValidationLayerName
     validationLayer
-      = coerce 
+      = coerce
       . foldMap
-        (  (  Vulkan.layerName :: Vulkan.LayerProperties -> ByteString )
+        (  Vulkan.LayerProperties.layerName
         >>> \case
               "VK_LAYER_LUNARG_standard_validation" -> Just ( First LunarG  )
               "VK_LAYER_KHRONOS_validation"         -> Just ( First Khronos )
@@ -699,7 +701,7 @@ cmdPipelineBarrier
   -> Vulkan.PipelineStageFlags
   -> Vulkan.PipelineStageFlags
   -> [Vulkan.MemoryBarrier]
-  -> [Vulkan.BufferMemoryBarrier]
+  -> [Vulkan.SomeStruct Vulkan.BufferMemoryBarrier]
   -> [Vulkan.SomeStruct Vulkan.ImageMemoryBarrier]
   -> m ()
 cmdPipelineBarrier

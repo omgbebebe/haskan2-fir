@@ -255,10 +255,6 @@ import Data.Set
 import System.Directory
   ( doesFileExist )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
-  ( EGADT )
-
 -- generic-monoid
 import Data.Monoid.Generic
   ( GenericSemigroup(..), GenericMonoid(..) )
@@ -270,6 +266,10 @@ import Data.Tree.View
 -- text-short
 import Data.Text.Short
   ( ShortText )
+
+-- variant
+import Data.Variant.EGADT
+  ( EGADT )
 
 -- fir
 import CodeGen.CodeGen

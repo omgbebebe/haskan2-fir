@@ -16,7 +16,7 @@ __Last updated__: October 2019.
 ## Quick summary
 
 The project occupies three main namespaces, each reflecting one aspect of compilation.
-  
+
   * __FIR__: types and operations used by this library, usually user-facing.
     - __FIR.AST__ defines the abstract syntax tree used by this library.
     - Modules in the __FIR.Syntax__ namespace provide syntactic sugar for constructing
@@ -72,11 +72,11 @@ FIR
  │
  ├╴Syntax
  │  │   User-facing syntax of the library.
- │  │   
+ │  │
  │  ├╴AST
  │  │   Syntax for objects of type 'AST a'.
  │  │   Mostly contains type-class instances, e.g. 'Floating a => Floating (AST a)'.
- │  │  
+ │  │
  │  ├╴Program
  │  │   Syntax for objects of type 'Program i j a', i.e. 'Codensity AST (a := j) i'.
  │  │   Most importantly, stateful operations:
@@ -85,18 +85,18 @@ FIR
  │  │     - control flow: loops, monadic if statement,
  │  │     - 'emitVertex'/'endPrimitive' operations for geometry shaders.
  │  │   Also contains type-class instances, e.g. 'Floating a => Floating (Program i i a)'.
- │  │   
+ │  │
  │  ├╴Labels
  │  │   Optional imperative-like syntax for stateful 'get'/'put' operations,
  │  │   using overloaded labels.
- │  │   
+ │  │
  │  ├╴Optics
  │  │   Instances for getters/setters operating on primitive types, such as vectors, matrices, arrays, structures.
  │  │   Note that instances for objects of type 'AST a' are to be found in "Syntax.AST" instead.
- │  │   
+ │  │
  │  ├╴Swizzle
  │  │   Swizzle optics (as syntactic sugar for product optics).
- │  │   
+ │  │
  │  ├╴Synonyms
  │  │   Various useful type and pattern synonyms.
  │  └╴...
@@ -116,12 +116,12 @@ Math
  │    Alternative type classes for arithmetic.
  │    Unfortunately the standard prelude is too limited for the purposes of this library.
  │    See for instance Math.Algebra.Class which includes an in-depth explanation.
- │ 
+ │
  ├╴Linear
  │    Vectors, matrices, and the usual operations involving them.
  │    Matrices are given a column-major representation (vector of their columns),
  │    for consistency with Vulkan and SPIR-V, which do the same.
- │ 
+ │
  └╴Logic
     └╴...
       Alternative type classes for logical operations (Eq, Ord, Bits,...).
@@ -131,7 +131,7 @@ Control
  │  └╴Indexed
  │      McBride-style indexed monads.
  │      Used for constructing stateful shader programs.
- │ 
+ │
  └╴Type
     └╴Optic
         Type-level optics and optic combinators used by this library.
@@ -141,7 +141,7 @@ CodeGen
  │   Main code-generation, turning a value of type 'AST a' into SPIR-V code.
  │   Calls out to various parts of the code generator for different AST constructors.
  │   Most modules are concerned with self-explanatory aspects of the AST (not included below).
- │ 
+ │
  ├╴Instruction
  │   Defines what constitutes an instruction: a SPIR-V instruction name together with arguments.
  │   Can return a result, which is given a unique ID number as per the SPIR-V SSA form.
@@ -155,13 +155,13 @@ CodeGen
  │     - exception handling ('ExceptT' transformer),
  │     - keeping a supply of fresh unique ID instruction numbers,
  │       using a custom 'MonadFresh' effect.
- │ 
+ │
  ├╴State
  │   Defines the state and context types used for code-generation.
- │ 
+ │
  ├╴Application
  │   Patterns for function application, to keep track of how many arguments a function is applied to.
- │ 
+ │
  ├╴IDs
  │   Generation of new ID numbers when needed, when defining types and constants.
  │   For instance, if we need to refer to the SPIR-V type corresponding to e.g. 'V 4 Float', we need to:
@@ -169,7 +169,7 @@ CodeGen
  │     * Otherwise, we recursively obtain ID numbers for 'Float' as well as the constant '4'.
  │       Once these are known, we can create the SPIR-V type corresponding to 'V 4 Float',
  │       giving it a newly generated ID number.
- │     
+ │
  ├╴Binary
  │    Functions that emit binary corresponding to a SPIR-V module.
  └╴...
@@ -226,7 +226,7 @@ Here are a few aspects of the backend that I find interesting and would like to 
   using `unsafeCoerce`, manually fixing up the resulting AST, and then using another
   `unsafeCoerce` to get back to the right type. See the vectorisation hacks
   in [CodeGen.Applicative](src/CodeGen/Applicative.hs).
-  
+
 
 <a name="tests"></a>
 ## Running tests
@@ -264,7 +264,7 @@ As described in the ["getting started" guide](getting_started.md#docs):
   ```
   > cabal haddock --haddock-options="--show-all --hyperlinked-source" --enable-documentation
   ```
-  
+
   * To build documentation, with external dependencies linking to Hackage:
   ```
   > cabal haddock --haddock-options="--show-all --hyperlinked-source" --haddock-html-location="https://hackage.haskell.org/package/$pkg-$version/docs"

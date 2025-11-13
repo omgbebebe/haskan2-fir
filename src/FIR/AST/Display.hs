@@ -29,15 +29,15 @@ import Data.Kind
 import Data.Tree
  ( Tree(Node) )
 
--- haskus-utils-variant
-import Haskus.Utils.VariantF
-  ( VariantF(VariantF), ApplyAll, BottomUp(toBottomUp) )
-import Haskus.Utils.EGADT
-  ( EGADT(..), HVariantF(..) )
-
 -- mtl
 import Control.Monad.State.Lazy
   ( evalState )
+
+-- variant
+import Data.Variant.EGADT
+  ( EGADT(..), HVariantF(..) )
+import Data.Variant.VariantF
+  ( VariantF(VariantF), ApplyAll, BottomUp(toBottomUp) )
 
 -- fir
 import CodeGen.Instruction

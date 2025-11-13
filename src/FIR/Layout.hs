@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise       #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
+{-# OPTIONS_GHC -fconstraint-solver-iterations=10 #-} -- for some reason this needs to be bumped with GHC 9.14
+
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}

@@ -50,13 +50,13 @@ import Data.Type.Map
 import Data.Tree
  ( Tree(Node) )
 
--- haskus-utils-variant
-import Haskus.Utils.EGADT
-  ( EGADT, pattern VF, (:<!) )
-
 -- text-short
 import Data.Text.Short
   ( ShortText )
+
+-- variant
+import Data.Variant.EGADT
+  ( EGADT, pattern VF, (:<!) )
 
 -- vector-sized
 import qualified Data.Vector.Sized as Vector

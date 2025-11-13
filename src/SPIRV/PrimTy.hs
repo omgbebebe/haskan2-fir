@@ -110,6 +110,8 @@ tyOp Boolean                 = TypeBool
 tyOp (Scalar Integer   {})   = TypeInt
 tyOp (Scalar Floating  {})   = TypeFloat
 tyOp (Vector _ (Vector _ _)) = TypeMatrix
+  -- SPIR-V doesn't have vectors of vectors, so declare them as matrices instead.
+  -- This is a bit of a workaround for issue #95.
 tyOp Vector             {}   = TypeVector
 tyOp Matrix             {}   = TypeMatrix
 tyOp Array              {}   = TypeArray

@@ -502,7 +502,7 @@ instance forall (as :: [LocationSlot Nat :-> Type])
          , KnownNat (Alignment Locations (Struct as))
          ) => Poke (Struct as) Locations where
   type SizeOf Locations (Struct as)
-    = SumSizeOfLocations as
+    = SizeOfLocations as
   type Alignment Locations (Struct as)
     = 16
   poke ptr struct = case primTyMapSing @_ @as of
@@ -524,10 +524,10 @@ instance forall (as :: [LocationSlot Nat :-> Type])
                 _ -> poke @b @Locations (castPtr ptr `plusPtr` off) b
               poke @(Struct bs) @Locations (castPtr ptr) bs
 
-type family SumSizeOfLocations (as :: [LocationSlot Nat :-> Type]) :: Nat where
-  SumSizeOfLocations '[] = 0
-  SumSizeOfLocations ( ( _ ':-> a ) ': as )
-    = ( SizeOf Locations a `RoundUp` 16 ) + SumSizeOfLocations as
+type family SizeOfLocations (as :: [LocationSlot Nat :-> Type]) :: Nat where
+  SizeOfLocations '[] = 0
+  SizeOfLocations ( ( 'LocationSlot l _ ':-> _ ) ': as )
+    = Max ( 16 * (l+1) ) ( SizeOfLocations as )
 
 --------------------------------------------------------------------------------------------
 -- Computing layout decorations necessary for SPIR-V.

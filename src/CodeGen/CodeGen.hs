@@ -27,6 +27,8 @@ module CodeGen.CodeGen
 -- base
 import Prelude
   hiding ( Monad(..) )
+import Data.Foldable
+  ( for_ )
 import Data.Kind
   ( Type )
 import Data.Proxy
@@ -43,12 +45,14 @@ import Data.ByteString.Lazy
   ( ByteString )
 
 -- mtl
+import Control.Monad
+  ( void )
 import Control.Monad.Except
   ( throwError )
 
 -- lens
 import Control.Lens
-  ( use, assign )
+  ( use, assign, view )
 
 -- text-short
 import Data.Text.Short
@@ -79,29 +83,30 @@ import CodeGen.Debug
 import CodeGen.Functions
   ( ) -- CodeGen instances for FunDef, FunCall, DefEntryPoint
 import CodeGen.IDs
-  ( constID, undefID )
+   ( typeID, constID, undefID )
 import CodeGen.Images
-  ( )  -- CodeGen instances for image operands
+   ( )  -- CodeGen instances for image operands
 import CodeGen.Instruction
-  ( ID )
+   ( ID )
 import CodeGen.Pointers
-  ( newVariable, store )
+   ( newVariable, store )
 import CodeGen.PrimOps
-  ( ) -- CodeGen instance for PrimOp
+   ( ) -- CodeGen instance for PrimOp
 import CodeGen.RayTracing
-  ( ) -- Codegen instances for TraceRay, ExecuteCallable, RayQuery
+   ( ) -- Codegen instances for TraceRay, ExecuteCallable, RayQuery
 import CodeGen.Monad
-  ( CGMonad, runCGMonad
-  , runExceptTPutM
-  )
+   ( CGMonad, runCGMonad
+   , runExceptTPutM
+   )
 import CodeGen.Optics
-  ( ) -- CodeGen for View, Set, Use, Assign
+   ( ) -- CodeGen for View, Set, Use, Assign
 import CodeGen.State
-  ( CGState, CGContext
-  , _functionContext
-  , _localBinding
-  , initialState
-  )
+   ( CGState, CGContext
+   , _functionContext
+   , _localBinding
+   , _userGlobals
+   , initialState
+   )
 import Data.Type.Known
   ( knownValue )
 import FIR.AST
@@ -131,7 +136,7 @@ import qualified SPIRV.Storage as Storage
 
 runCodeGen :: Nullary a => CGContext -> AST a -> Either ShortText (ByteString, CGState)
 runCodeGen context ast
-  = case runCGMonad context (initialState context) (codeGen ast) of
+  = case runCGMonad context (initialState context) (declareGlobals *> codeGen ast) of
 
       Right (_, cgState, body)
         -> case runExceptTPutM $ putModule context cgState of
@@ -139,6 +144,12 @@ runCodeGen context ast
               Left err         -> Left err
 
       Left err -> Left err
+
+declareGlobals :: CGMonad ()
+declareGlobals = do
+  globals <- view _userGlobals
+  for_ globals $ \(ptrTy, _decs) -> do
+    void (typeID (SPIRV.pointerTy ptrTy))
 
 ----------------------------------------------------------------------------
 -- typeclass to dispatch code generation on AST constructors

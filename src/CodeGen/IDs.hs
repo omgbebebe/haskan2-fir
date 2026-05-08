@@ -128,6 +128,7 @@ import FIR.ProgramState
 import Math.Linear
   ( M(unM) )
 import qualified SPIRV.Builtin      as SPIRV
+import qualified SPIRV.Capability   as SPIRV.Cap
 import qualified SPIRV.Decoration   as SPIRV
 import qualified SPIRV.Extension    as SPIRV
   ( ExtInst )
@@ -213,6 +214,11 @@ typeID ty = TyID <$>
             ( \eltTyID v -> do
               -- decorate the array (only include layout decorations)
               addDecorations v (Set.filter SPIRV.isLayoutDecoration decs)
+              -- Require bindless capabilities for runtime arrays of sampled images
+              case a of
+                SPIRV.PrimTy.SampledImage _ -> do
+                  requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing])
+                _ -> pure ()
               mkTyConInstruction ( Arg eltTyID EndArgs ) v
             )
 
@@ -404,6 +410,11 @@ constID a =
                 SPIRV.Op.ConvertUToAccelerationStructure
                 ( Arg handleID EndArgs )
             )
+
+        SImage {} ->
+            throwError
+              "'constID': cannot construct image constants.\n\
+              \Images are only available through entry-point interfaces."
 
         SArray {} ->
           createIDRec _knownAConstant

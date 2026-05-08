@@ -1,5 +1,9 @@
+{-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE ExplicitForAll       #-}
+{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RoleAnnotations      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -14,6 +18,10 @@ import Data.Kind
   ( Type )
 import Data.Type.Bool
   ( If )
+import Data.Type.Known
+  ( Known )
+import Data.Typeable
+  ( Typeable )
 import GHC.TypeNats
   ( Nat )
 
@@ -33,6 +41,8 @@ import SPIRV.Image
   , MultiSampling(..)
   , Operand
   )
+import qualified SPIRV.Image as SPIRV
+  ( Image )
 
 --------------------------------------------------
 
@@ -55,10 +65,19 @@ data ImageProperties where
 data Image (props :: ImageProperties)
 type role Image phantom
 
+instance Show (Image props)
+instance Eq (Image props)
+instance Ord (Image props)
+
+newtype ImageAndCoordinate
+  = ImageAndCoordinate (SPIRV.Image, ImageCoordinateKind)
+
+knownImage :: forall props. Known ImageProperties props => SPIRV.Image
+
 data OperandName
   = DepthComparison
   | ProjectiveCoords
-  | BaseOperand SPIRV.Image.Operand
+  | BaseOperand Operand
 
 data ImageOperands
         ( props :: ImageProperties )

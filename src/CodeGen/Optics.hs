@@ -194,7 +194,7 @@ instance CodeGen AST => CodeGen (OpticF AST) where
 
     -- image
     SImageTexel ( _ :: Proxy name ) ( _ :: Proxy props ) texelTy
-      -> case is of 
+      -> case is of
           ( ops `ConsAST` coords `ConsAST` NilAST )
             -> do
                   let imgName = knownValue @name
@@ -207,6 +207,24 @@ instance CodeGen AST => CodeGen (OpticF AST) where
                             _ -> pure bd
                   (cdID, _) <- codeGen coords
                   imageTexel img ops cdID (resTyID, imgTexelTy)
+
+    -- bindless texture array
+    SBindlessTexel ( _ :: Proxy name ) ( _ :: Proxy props ) texelTy
+      -> case is of
+          ( idx `ConsAST` ops `ConsAST` coords `ConsAST` NilAST )
+            -> do
+                  let varName = knownValue @name
+                      imgTexelTy = sPrimTy texelTy
+                  bd@(bdID, bdTy) <- bindingID varName
+                  resTyID <- typeID imgTexelTy
+                  (idxID, _) <- codeGen idx
+                  case bdTy of
+                    SPIRV.Pointer storage eltTy -> do
+                      accessPtr <- accessChain (bdID, SPIRV.PointerTy storage eltTy) Unsafe (RTInds [idxID])
+                      img <- load (varName, fst accessPtr) (snd accessPtr)
+                      (cdID, _) <- codeGen coords
+                      imageTexel img ops cdID (resTyID, imgTexelTy)
+                    _ -> throwError "BindlessTexel: binding is not a pointer"
 
     SComposeO _ (SBinding (_ :: Proxy name )) getter ->
       do  let varName = knownValue @name
@@ -407,6 +425,8 @@ operationTree _ (SBinding {})
   = throwError "operationTree: trying to access a binding within a binding"
 operationTree _ (SImageTexel {})
   = throwError "operationTree: unexpected image optic"
+operationTree _ (SBindlessTexel {})
+  = throwError "operationTree: unexpected bindless texel optic"
 
 continue :: OpticalOperationTree -> OpticalOperationTree -> CGMonad OpticalOperationTree
 continue ops1 []   = pure ops1

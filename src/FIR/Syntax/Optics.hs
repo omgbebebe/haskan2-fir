@@ -136,6 +136,8 @@ import FIR.Validation.Bounds
   )
 import FIR.Validation.Images
   ( LookupImageProperties, ImageTexelType )
+import FIR.Syntax.Images
+  ( BindlessTexel )
 import Math.Linear
   ( V((:.)), M(M)
   , (^!), at, replaceV
@@ -171,16 +173,23 @@ data SOptic (optic :: Optic i s a) :: Type where
                                              (Image props)
                                              (ImageTexelType props ops)
                              )
-                          ) :: Optic
-                                '[ ImageOperands props ops, imgCds ]
-                                i
-                                (ImageTexelType props ops)
+                           ) :: Optic
+                                 '[ ImageOperands props ops, imgCds ]
+                                 i
+                                 (ImageTexelType props ops)
                         )
+  SBindlessTexel :: ( KnownSymbol k
+                    , Known ImageProperties props
+                    )
+                 => Proxy k
+                 -> Proxy props
+                 -> SPrimTy (ImageTexelType props ops)
+                 -> SOptic ( BindlessTexel k :: Optic '[Word32, ImageOperands props ops, imgCds] i (ImageTexelType props ops) )
   SComposeO :: forall is js s a b (o1 :: Optic is s a) (o2 :: Optic js a b)
-            .  SLength is -> SOptic o1 -> SOptic o2 -> SOptic (o1 :.: o2)
-     --        ^^^^^^^^^^
-     -- we need to know the length of the first list to generate code for composite optics
-     -- see the function 'opticalTree' in the code generator
+             .  SLength is -> SOptic o1 -> SOptic o2 -> SOptic (o1 :.: o2)
+      --        ^^^^^^^^^^
+      -- we need to know the length of the first list to generate code for composite optics
+      -- see the function 'opticalTree' in the code generator
 
      -- similar remark applies to products
   SProd :: forall
@@ -229,6 +238,7 @@ showSOptic (SAnIndex _ _ _) = "AnIndex"
 showSOptic (SIndex   _ _ n) = "Index "   ++ show n
 showSOptic (SBinding    k  ) = "Binding "    ++ show (symbolVal k)
 showSOptic (SImageTexel k _ _) = "ImageTexel " ++ show (symbolVal k)
+showSOptic (SBindlessTexel k _ _) = "BindlessTexel " ++ show (symbolVal k)
 showSOptic (SComposeO _   o1 o2) = showSOptic o1 ++ " :.: " ++ showSOptic o2
 showSOptic (SProd _ comps) = "Prod ( " ++ showSProductComponents comps ++ " )"
 
@@ -373,6 +383,38 @@ instance {-# OVERLAPPING #-}
             )
   where
   opticSing = SImageTexel (Proxy @k) (Proxy @props) (primTySing @imgTexel)
+
+-- bindless texture array texel optic
+instance {-# OVERLAPPING #-}
+         forall
+           ( k        :: Symbol          )
+           ( i        :: ProgramState    )
+           ( props    :: ImageProperties )
+           ( ops      :: [OperandName]   )
+           ( imgOps   :: Type            )
+           ( imgCds   :: Type            )
+           ( imgTexel :: Type            )
+         .
+         ( KnownSymbol k
+         , PrimTy imgCds
+         , PrimTy imgTexel
+         , LookupImageProperties k i ~ props
+         , Known ImageProperties props
+         , imgOps ~ ImageOperands props ops
+         , imgTexel ~ ImageTexelType props ops
+         )
+      => KnownOptic
+           ( ( ( ( ( Field_ (k :: Symbol) :: Optic '[] i (RuntimeArray (Image props)) )
+                   `ComposeO`
+                   ( RTOptic_ :: Optic '[Word32] (RuntimeArray (Image props)) (Image props) )
+                 ) :: Optic '[Word32] i (Image props)
+               )
+               `ComposeO`
+               ( RTOptic_ :: Optic '[imgOps, imgCds] (Image props) imgTexel )
+             ) :: Optic '[Word32, imgOps, imgCds] i imgTexel
+           )
+  where
+  opticSing = SBindlessTexel (Proxy @k) (Proxy @props) (primTySing @imgTexel)
 
 type family ValidAnIndexOptic (is :: [Type]) (s :: Type) (a :: Type) :: Constraint where
   ValidAnIndexOptic '[] _ _

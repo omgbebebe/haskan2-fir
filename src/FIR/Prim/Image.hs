@@ -2,6 +2,7 @@
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DerivingStrategies     #-}
+{-# LANGUAGE EmptyDataDeriving      #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -55,6 +56,8 @@ import Data.Kind
   ( Type )
 import Data.Type.Bool
   ( If )
+import Data.Typeable
+  ( Typeable )
 import GHC.TypeNats
   ( Nat )
 
@@ -123,6 +126,7 @@ instance Known ImageCoordinateKind FloatingPointCoordinates where
 
 -- | Abstract handle to an image.
 data Image (props :: ImageProperties)
+  deriving stock (Show, Eq, Ord, Typeable)
 
 -- newtype to retain injectivity of 'Demote' type family
 newtype ImageAndCoordinate

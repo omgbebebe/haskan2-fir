@@ -95,6 +95,7 @@ data Decoration a
   | NoContraction
   | InputAttachmentIndex a
   | Alignment a
+  | NonUniformEXT
   deriving stock ( Show, Eq, Ord )
 
 isLayoutDecoration :: Decoration a -> Bool
@@ -108,6 +109,7 @@ isLayoutDecoration dec = case dec of
   GLSLShared     -> True
   GLSLPacked     -> True
   CPacked        -> True
+  NonUniformEXT  -> False
   _              -> False
 
 type Decorations = Set (Decoration Word32)
@@ -158,6 +160,7 @@ instance Put (Decoration Word32) where
   put NoContraction            = put @Word32 42
   put (InputAttachmentIndex i) = put @Word32 43 *> put i
   put (Alignment            i) = put @Word32 44 *> put i
+  put NonUniformEXT            = put @Word32 5309
 
   wordCount (SpecId               _) = 2
   wordCount (ArrayStride          _) = 2
@@ -174,6 +177,7 @@ instance Put (Decoration Word32) where
   wordCount (XfbStride            _) = 2
   wordCount (InputAttachmentIndex _) = 2
   wordCount (Alignment            _) = 2
+  wordCount NonUniformEXT            = 1
   wordCount _ = 1
 
 instance Demotable (Decoration Nat) where
@@ -257,3 +261,5 @@ instance Known Nat i => Known (Decoration Nat) (InputAttachmentIndex i) where
   known = InputAttachmentIndex ( knownValue @i )
 instance Known Nat i => Known (Decoration Nat) (Alignment i) where
   known = Alignment ( knownValue @i )
+instance Known (Decoration Nat) NonUniformEXT where
+  known = NonUniformEXT

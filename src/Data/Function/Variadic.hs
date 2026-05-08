@@ -35,6 +35,8 @@ import FIR.AST.Type
   ( AugType(Val, (:-->)) )
 import FIR.Prim.Array
   ( Array,RuntimeArray )
+import {-# SOURCE #-} FIR.Prim.Image
+  ( Image )
 import FIR.Prim.RayTracing
   ( AccelerationStructure, RayQuery )
 import {-# SOURCE #-} FIR.Prim.Struct
@@ -91,6 +93,7 @@ type family ListVariadic (as :: [Type]) (b :: Type) = (r :: Type) | r -> as b wh
   ListVariadic '[] (Array n a) = Array n a
   ListVariadic '[] (RuntimeArray a) = RuntimeArray a
   ListVariadic '[] (AST a) = AST a
+  ListVariadic '[] (Image props) = Image props
   ListVariadic '[] (a1,a2) = (a1,a2)
   ListVariadic '[] (a1,a2,a3) = (a1,a2,a3)
   ListVariadic '[] (a1,a2,a3,a4) = (a1,a2,a3,a4)

@@ -113,6 +113,8 @@ import Data.Type.List
   , SameLength
   , type (:++:), Postpend, Snoc
   )
+import Data.Type.Known
+  ( Known )
 import Data.Type.Map
   ( (:->)((:->)), Key )
 import FIR.AST
@@ -142,6 +144,8 @@ import FIR.Syntax.Optics
   )
 import FIR.Prim.Array
   ( Array(MkArray), RuntimeArray )
+import FIR.Prim.Image
+  ( ImageProperties, Image, OperandName, ImageOperands )
 import FIR.Prim.Op
   ( PrimTyVal, Vectorise(Vectorise) )
 import FIR.Prim.Struct
@@ -153,6 +157,10 @@ import FIR.Prim.Types
   , SPrimFunc(..), PrimFunc(..), DistDict(DistDict)
   , scalarTySing
   )
+import FIR.ProgramState
+  ( ProgramState )
+import FIR.Validation.Images
+  ( LookupImageProperties, ValidImageRead, ImageTexelType )
 import FIR.Validation.Bounds
   ( StructIndexFromName )
 import Math.Algebra.Class
@@ -567,7 +575,7 @@ instance ( Integral ty, IntegralTy ty
   set = fromAST
        $ Set
             sLength
-            ( opticSing @(RTOptic_ :: Optic '[ty] s a) )
+             ( opticSing @(RTOptic_ :: Optic '[ty] s a) )
 
 -- *** Compile-time index
 

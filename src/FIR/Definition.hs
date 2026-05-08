@@ -80,7 +80,7 @@ import qualified Data.Map.Strict as Map
 import Data.Set
   ( Set )
 import qualified Data.Set as Set
-  ( fromList )
+  ( fromList, empty )
 
 -- lens
 import Control.Lens
@@ -110,6 +110,8 @@ import FIR.Binding
   ( Binding(Variable), StoragePermissions )
 import qualified FIR.Binding as Binding
   ( Binding(Function) )
+import FIR.Prim.Array
+  ( RuntimeArray )
 import FIR.Prim.Image
   ( Image, knownImage, ImageProperties )
 import FIR.Prim.Types
@@ -139,8 +141,9 @@ import qualified SPIRV.Extension     as SPIRV
 import qualified SPIRV.Image         as SPIRV
   ( Image(imageUsage), ImageUsage(Sampled) )
 import qualified SPIRV.PrimTy        as SPIRV
-  ( PrimTy(Image, SampledImage)
+  ( PrimTy(Image, SampledImage, RuntimeArray)
   , PointerTy(PointerTy)
+  , AggregateUsage(NotForBuiltins)
   )
 import qualified SPIRV.Requirements  as SPIRV
   ( globalCapabilities, globalExtensions
@@ -229,6 +232,23 @@ instance Demotable Definition where
   type Demote Definition = Annotate
 
 -- workaround for image types being opaque and not having a Haskell-level counterpart
+instance {-# OVERLAPPING #-}
+         ( Known ImageProperties        props
+         , Known SPIRV.StorageClass     storage
+         , Known [SPIRV.Decoration Nat] decs
+         )
+      => Known Definition ('Global storage decs (RuntimeArray (Image props)))
+      where
+  known = AnnotateGlobal
+    ( SPIRV.PointerTy ( knownValue @storage ) (SPIRV.RuntimeArray imgTy Set.empty SPIRV.NotForBuiltins)
+    , Set.fromList    ( knownValue @decs    )
+    )
+        where imgTy :: SPIRV.PrimTy
+              imgTy = case knownImage @props of
+                        img -> case SPIRV.imageUsage img of
+                                Just SPIRV.Sampled -> SPIRV.SampledImage img
+                                _                  -> SPIRV.Image        img
+
 instance {-# OVERLAPPING #-}
          ( Known ImageProperties        props
          , Known SPIRV.StorageClass     storage

@@ -67,6 +67,8 @@ import Numeric.Half
 -- text-short
 import Data.Text.Short
   ( ShortText )
+import Data.Typeable
+  ( Typeable )
 
 -- fir
 import {-# SOURCE #-} Control.Type.Optic
@@ -92,7 +94,7 @@ import FIR.Binding
 import FIR.Prim.Array
   ( Array, RuntimeArray )
 import {-# SOURCE #-} FIR.Prim.Image
-  ( Image )
+  ( Image, ImageProperties, knownImage )
 import FIR.Prim.RayTracing
   ( AccelerationStructure, RayQuery )
 import FIR.Prim.Struct
@@ -196,6 +198,9 @@ data SPrimTy :: Type -> Type where
           => SPrimTy (Struct as)
   SAccelerationStructure
     :: SPrimTy AccelerationStructure
+  SImage :: forall (props :: ImageProperties)
+         .  ( Known ImageProperties props )
+         => SPrimTy (Image props)
 
 data SPrimTyMap :: [fld :-> Type] -> Type where
   SNil  :: SPrimTyMap '[]
@@ -242,6 +247,10 @@ instance Show (SPrimTy ty) where
           ++ intercalate ", " ( showSPrimTyMap ( primTyMapSing @_ @as ) )
           ++ "]"
   show SAccelerationStructure = "AccelerationStructure"
+  show sImage@SImage
+    = case sImage of
+        ( _ :: SPrimTy (Image props) ) ->
+          "Image " ++ show (knownImage @props)
 
 showSPrimTyMap :: SPrimTyMap as -> [String]
 showSPrimTyMap SNil = []
@@ -263,6 +272,7 @@ data SKPrimTy :: Type -> Type where
            :: SKPrimTy a -> SKPrimTy (RuntimeArray a)
   SKStruct :: SKPrimTyMap as -> SKPrimTy (Struct as)
   SKAccelerationStructure :: SKPrimTy AccelerationStructure
+  SKImage :: SKPrimTy (Image props)
 
 data SKPrimTyMap :: [fld :-> Type] -> Type where
   SKNil :: SKPrimTyMap '[]
@@ -306,6 +316,7 @@ type family PrimTySing (ty :: Type) :: SKPrimTy ty where
   PrimTySing (RuntimeArray a) = SKRuntimeArray (PrimTySing a)
   PrimTySing (Struct as) = SKStruct (MapPrimTySing as)
   PrimTySing AccelerationStructure = SKAccelerationStructure
+  PrimTySing (Image props) = SKImage
   PrimTySing ty
     = TypeError
         ( Text "Type " :<>: ShowType ty :<>: Text " is not a valid primitive type." )
@@ -346,6 +357,13 @@ instance PrimTy Bool where
 instance PrimTy AccelerationStructure where
   type FieldsOfType AccelerationStructure a = MonolithicFields AccelerationStructure a
   primTySing = SAccelerationStructure
+
+instance ( Known ImageProperties props
+         , Typeable props
+         )
+  => PrimTy (Image props) where
+  type FieldsOfType (Image props) a = MonolithicFields (Image props) a
+  primTySing = SImage
 
 instance ScalarTy Word8  where
   scalarTySing = SWord8
@@ -559,6 +577,9 @@ sPrimTy struct@SStruct = case struct of
   ( _ :: SPrimTy (Struct as) )
     -> SPIRV.Struct (sPrimTyMap (primTyMapSing @_ @as)) Set.empty SPIRV.NotForBuiltins
 sPrimTy SAccelerationStructure = SPIRV.AccelerationStructure
+sPrimTy sImage@SImage = case sImage of
+  ( _ :: SPrimTy (Image props) )
+    -> SPIRV.Image (knownImage @props)
 
 sPrimTyMap :: forall (fld :: Type) (flds :: [fld :-> Type])
            .  SPrimTyMap flds

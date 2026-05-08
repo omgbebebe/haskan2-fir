@@ -26,6 +26,7 @@ import Data.Word
 
 -- containers
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 
 -- mtl
 import Control.Monad.Except
@@ -65,6 +66,8 @@ import CodeGen.State
   , _localVariable
   , _temporaryPointer
   , _knownConstants
+  , addDecoration
+  , requireCapabilities
   )
 import FIR.Prim.Types
   ( SPrimTy(..), SScalarTy(..)
@@ -73,6 +76,9 @@ import FIR.Prim.Types
   )
 import FIR.ProgramState
   ( FunctionContext(TopLevel, InEntryPoint) )
+import qualified SPIRV.Capability as SPIRV.Cap
+import qualified SPIRV.Decoration as SPIRV
+  ( Decoration(NonUniformEXT) )
 import qualified SPIRV.Operation as SPIRV.Op
 import qualified SPIRV.PrimTy    as SPIRV
 import qualified SPIRV.Stage     as SPIRV
@@ -162,6 +168,12 @@ accessChain (basePtrID, SPIRV.PointerTy storage baseTy) safe indices
           , args      = Arg basePtrID
                       $ toArgs is
           }
+      -- For runtime array accesses (bindless descriptors), add NonUniformEXT
+      case baseTy of
+        SPIRV.RuntimeArray {} -> do
+          addDecoration v SPIRV.NonUniformEXT
+          requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing])
+        _ -> pure ()
       pure (v, accessPtrTy)
 
 reverseLookupIndices :: Indices -> CGMonad [ Maybe Word32 ]

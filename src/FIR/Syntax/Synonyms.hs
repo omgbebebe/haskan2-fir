@@ -45,8 +45,11 @@ module FIR.Syntax.Synonyms
   -- * Synonyms for images
   -- ** Sampled images
   , Texture1D, Texture2D, Texture3D, Texture
+  , Texture1DArray, Texture2DArray, Texture3DArray
+  , BindlessTexture2D
   -- ** Storage images
   , Image1D, Image2D, Image3D, StorageImage
+  , Image1DArray, Image2DArray, Image3DArray
   -- ** Image operand shorthands
   , pattern DepthTestOffsets
   , pattern GatherComponentWithOffsets
@@ -142,7 +145,7 @@ import FIR.Pipeline
   , PipelineStages(VertexInput)
   )
 import FIR.Prim.Array
-  ( Array )
+  ( Array, RuntimeArray )
 import FIR.Prim.Image
   ( ImageProperties(Properties)
   , ImageCoordinateKind(..)
@@ -204,6 +207,44 @@ type CallableDataIn     decs ty = Global ( 'Storage.RayStorage ( Storage.Callabl
 type HitAttribute       decs ty = Global ( 'Storage.RayStorage Storage.HitAttribute                      ) decs ty
 type ShaderRecordBuffer decs ty = Global ( 'Storage.RayStorage Storage.ShaderRecordBuffer                ) decs ty
 
+type Texture1DArray decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties FloatingPointCoordinates (FormatDefault fmt) OneD   (Just NotDepthImage) Arrayed SingleSampled Sampled (Just fmt))
+      )
+type Texture2DArray decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties FloatingPointCoordinates (FormatDefault fmt) TwoD   (Just NotDepthImage) Arrayed SingleSampled Sampled (Just fmt))
+      )
+type Texture3DArray decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties FloatingPointCoordinates (FormatDefault fmt) ThreeD (Just NotDepthImage) Arrayed SingleSampled Sampled (Just fmt))
+      )
+
+type Image1DArray decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties IntegralCoordinates (FormatDefault fmt) OneD   (Just NotDepthImage) Arrayed SingleSampled Storage (Just fmt))
+      )
+type Image2DArray decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties IntegralCoordinates (FormatDefault fmt) TwoD   (Just NotDepthImage) Arrayed SingleSampled Storage (Just fmt))
+      )
+type Image3DArray decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties IntegralCoordinates (FormatDefault fmt) ThreeD (Just NotDepthImage) Arrayed SingleSampled Storage (Just fmt))
+      )
+
 -- synonym for function with no function control information
 type Function     as b = Def.Function NoFunctionControl as b
 type Function' fc as b = Def.Function fc as b
@@ -257,6 +298,17 @@ type StorageImage decs props
       Storage.UniformConstant
       decs
       ( Image props )
+
+-- | Bindless runtime array of sampled image descriptors.
+-- Use with @DescriptorSet@ and @Binding@ decorations.
+type BindlessTexture2D decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( RuntimeArray
+          ( Image
+             (Properties FloatingPointCoordinates (FormatDefault fmt) TwoD (Just NotDepthImage) NonArrayed SingleSampled Sampled (Just fmt))
+          )
+      )
 
 -- shorthand pattern synonyms for image operands
 pattern DepthTestOffsets offs ops = Gather (DepthWithOffsets offs) ops

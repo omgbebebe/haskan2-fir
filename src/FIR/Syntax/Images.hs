@@ -69,6 +69,9 @@ module FIR.Syntax.Images
   ( -- * Lens focusing on an image texel
     ImageTexel
 
+  -- * Lens focusing on a texel of a bindless texture array
+  , BindlessTexel
+
   -- * Image query operations
   , imageSizeLOD, imageSize, imageLOD, imageLevels, imageSamples
 
@@ -101,6 +104,8 @@ import FIR.AST
   )
 import FIR.Module
   ( Program )
+import FIR.Prim.Array
+  ( RuntimeArray )
 import FIR.Prim.Image
   ( ImageProperties
   , Image
@@ -185,8 +190,8 @@ instance {-# OVERLAPPING #-}
                   )
       where
 
-instance {-# OVERLAPPING #-} 
-         forall 
+instance {-# OVERLAPPING #-}
+         forall
            ( k        :: Symbol          )
            ( i        :: ProgramState    )
            ( props    :: ImageProperties )
@@ -205,10 +210,74 @@ instance {-# OVERLAPPING #-}
          , imgTexel ~ ImageTexelType props ops
          )
       => Settable ( ( ( Field_ k :: Optic empty i (Image props))
-                    `ComposeO`
-                      ( RTOptic_ :: Optic '[imgOps, imgCds] (Image props) imgTexel )
-                    ) :: Optic '[imgOps, imgCds] i imgTexel
-                  )
+                     `ComposeO`
+                       ( RTOptic_ :: Optic '[imgOps, imgCds] (Image props) imgTexel )
+                     ) :: Optic '[imgOps, imgCds] i imgTexel
+                   )
+      where
+
+----------------------------------------------------
+-- Bindless texture array texel access
+
+-- | Lens for focusing on texels of a bindless texture array.
+--
+-- This accesses a runtime array of sampled images by index,
+-- then samples the selected image at the given coordinates.
+--
+-- @ use \@(BindlessTexel "textures") index imageOperands coords @
+type family BindlessTexel
+              ( k :: Symbol )
+            = ( optic
+                :: Optic
+                    '[ Word32, ImageOperands props ops, imgCds ]
+                    ( i :: ProgramState )
+                    ( ImageTexelType props ops )
+              )
+            | optic -> k
+            where
+  forall i props ops imgCds k.
+    BindlessTexel k
+      = ( ( ( ( Field_ (k :: Symbol) :: Optic '[] i (RuntimeArray (Image props)) )
+              `ComposeO`
+              ( RTOptic_
+                  :: Optic '[Word32] (RuntimeArray (Image props)) (Image props)
+              )
+            ) :: Optic '[Word32] i (Image props)
+          ) `ComposeO`
+          ( RTOptic_
+              :: Optic '[ImageOperands props ops, imgCds] (Image props) (ImageTexelType props ops)
+          )
+        ) :: Optic '[Word32, ImageOperands props ops, imgCds] i (ImageTexelType props ops)
+
+instance {-# OVERLAPPING #-}
+         forall
+           ( k        :: Symbol          )
+           ( i        :: ProgramState    )
+           ( props    :: ImageProperties )
+           ( ops      :: [OperandName]   )
+           ( empty    :: [Type]          )
+           ( imgOps   :: Type            )
+           ( imgCds   :: Type            )
+           ( imgTexel :: Type            )
+         .
+         ( KnownSymbol k
+         , LookupImageProperties k i ~ props
+         , Known ImageProperties props
+         , ValidImageRead props ops imgCds
+         , empty ~ '[]
+         , imgOps ~ ImageOperands props ops
+         , imgTexel ~ ImageTexelType props ops
+         )
+      => Gettable
+           ( ( ( ( ( Field_ (k :: Symbol) :: Optic '[] i (RuntimeArray (Image props)) )
+                   `ComposeO`
+                   ( RTOptic_ :: Optic '[Word32] (RuntimeArray (Image props)) (Image props) )
+                 ) :: Optic '[Word32] i (Image props)
+               )
+               `ComposeO`
+               ( RTOptic_ :: Optic '[imgOps, imgCds] (Image props) imgTexel )
+             ) :: Optic '[Word32, imgOps, imgCds] i imgTexel
+           )
       where
 
 -----------------------------------------------------------------------

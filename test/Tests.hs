@@ -65,6 +65,7 @@ allTests
           [ ( "Gather"   , Validate )
           , ( "ReadWrite", Validate )
           , ( "Sample"   , Validate )
+          , ( "SampleArray", Validate )
           ]
     , Folder "Inference"
           [ ( "Ising1", Typecheck )

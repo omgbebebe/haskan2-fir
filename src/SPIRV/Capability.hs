@@ -212,6 +212,21 @@ pattern StorageImageWriteWithoutFormat = Capability 56
 pattern MultiViewport :: Capability
 pattern MultiViewport = Capability 57
 
+pattern RuntimeDescriptorArray :: Capability
+pattern RuntimeDescriptorArray = Capability 33
+
+pattern SampledImageArrayNonUniformIndexing :: Capability
+pattern SampledImageArrayNonUniformIndexing = Capability 65
+
+pattern StorageImageArrayNonUniformIndexing :: Capability
+pattern StorageImageArrayNonUniformIndexing = Capability 66
+
+pattern StorageBufferArrayNonUniformIndexing :: Capability
+pattern StorageBufferArrayNonUniformIndexing = Capability 67
+
+pattern UniformBufferArrayNonUniformIndexing :: Capability
+pattern UniformBufferArrayNonUniformIndexing = Capability 68
+
 -- no 61
 pattern GroupNonUniform :: Capability
 pattern GroupNonUniform = Capability 61
@@ -307,6 +322,11 @@ showCapability GeometryStreams = "GeometryStreams"
 showCapability StorageImageReadWithoutFormat = "StorageImageReadWithoutFormat"
 showCapability StorageImageWriteWithoutFormat = "StorageImageWriteWithoutFormat"
 showCapability MultiViewport = "MultiViewport"
+showCapability RuntimeDescriptorArray = "RuntimeDescriptorArray"
+showCapability SampledImageArrayNonUniformIndexing = "SampledImageArrayNonUniformIndexing"
+showCapability StorageImageArrayNonUniformIndexing = "StorageImageArrayNonUniformIndexing"
+showCapability StorageBufferArrayNonUniformIndexing = "StorageBufferArrayNonUniformIndexing"
+showCapability UniformBufferArrayNonUniformIndexing = "UniformBufferArrayNonUniformIndexing"
 showCapability GroupNonUniform = "GroupNonUniform"
 showCapability GroupNonUniformVote = "GroupNonUniformVote"
 showCapability GroupNonUniformArithmetic = "GroupNonUniformArithmetic"

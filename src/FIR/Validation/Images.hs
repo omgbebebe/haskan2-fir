@@ -56,6 +56,8 @@ import Data.Type.Map
   ( Lookup )
 import FIR.Binding
   ( Binding, BindingsMap, Var )
+import FIR.Prim.Array
+  ( RuntimeArray )
 import {-# SOURCE #-} FIR.Prim.Image
   ( ImageProperties(Properties), Image
   , OperandName(DepthComparison, ProjectiveCoords, BaseOperand)
@@ -106,6 +108,7 @@ type family ImagePropertiesFromLookup
             :: ImageProperties
               where
   ImagePropertiesFromLookup _ _ (Just (Var _ (Image props))) = props
+  ImagePropertiesFromLookup _ _ (Just (Var _ (RuntimeArray (Image props)))) = props
   ImagePropertiesFromLookup k i  Nothing
     = TypeError (     Text "Expected an image, \
                            \but nothing is bound by name " :<>: ShowType k
@@ -158,16 +161,16 @@ type family ValidImageGradCoordinate
               ( ops       :: [ OperandName ] )
               ( coordType :: Type            )
               where
-  ValidImageGradCoordinate ( Properties coordKind _ dim _ _ _ _ _ ) ops coordType
-    = ValidCoordinateType "gradient coordinates" (GradCoordinatesDim dim ops) coordKind coordType
+  ValidImageGradCoordinate ( Properties coordKind _ dim _ arr _ _ _ ) ops coordType
+    = ValidCoordinateType "gradient coordinates" (GradCoordinatesDim dim arr ops) coordKind coordType
 
 type family ValidImageOffsetCoordinate
               ( props     :: ImageProperties )
               ( ops       :: [ OperandName ] )
               ( coordType :: Type            )
               where
-  ValidImageOffsetCoordinate ( Properties coordKind _ dim _ _ _ _ _ ) ops coordType
-    = ValidCoordinateType "offset coordinates" (OffsetCoordinatesDim dim ops) coordKind coordType
+  ValidImageOffsetCoordinate ( Properties coordKind _ dim _ arr _ _ _ ) ops coordType
+    = ValidCoordinateType "offset coordinates" (OffsetCoordinatesDim dim arr ops) coordKind coordType
 
 type family ValidCoordinateType
               ( coordsName :: Symbol )
@@ -405,23 +408,25 @@ type family ComputeCoordsDim
 
 -- which coordinates to use to provide explicit derivatives
 type family GradCoordinatesDim
-              ( props :: Dimensionality  )
+              ( dim   :: Dimensionality  )
+              ( arr   :: Arrayness       )
               ( ops   :: [OperandName]   )
             :: Nat where
-  GradCoordinatesDim dim ops =
+  GradCoordinatesDim dim arr ops =
     If ( ProjectiveCoords `Elem` ops )
-      ( ComputeCoordsDim dim NonArrayed Projective )
-      ( ComputeCoordsDim dim NonArrayed Affine     )
+      ( ComputeCoordsDim dim arr Projective )
+      ( ComputeCoordsDim dim arr Affine     )
 
 -- which coordinates to use to provide an offset
 type family OffsetCoordinatesDim
-              ( props :: Dimensionality  )
+              ( dim   :: Dimensionality  )
+              ( arr   :: Arrayness       )
               ( ops   :: [OperandName]   )
             :: Nat where
-  OffsetCoordinatesDim dim ops =
+  OffsetCoordinatesDim dim arr ops =
     If ( ProjectiveCoords `Elem` ops )
-      ( ComputeCoordsDim dim NonArrayed Projective )
-      ( ComputeCoordsDim dim NonArrayed Affine     )
+      ( ComputeCoordsDim dim arr Projective )
+      ( ComputeCoordsDim dim arr Affine     )
 
 
 -----------------------------------------------------------

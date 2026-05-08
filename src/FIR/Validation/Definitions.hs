@@ -54,7 +54,11 @@ import FIR.Definition
 import FIR.Prim.Array
   ( Array, RuntimeArray )
 import FIR.Prim.Image
-  ( Image )
+  ( Image, ImageProperties(Properties) )
+import FIR.Prim.Types
+  ( HasOpaqueType )
+import FIR.Validation.Images
+  ( ImageUsageFromProperties )
 import FIR.Prim.RayTracing
   ( AccelerationStructure )
 import FIR.Prim.Struct
@@ -182,6 +186,14 @@ type family ValidGlobal
         decs
         (Image props)
       , ValidImageDecorations name (ImageUsageFromProperties props) decs
+      )
+  ValidGlobal name Storage.UniformConstant decs (RuntimeArray (Image props))
+    = ( ValidUniformDecorations
+        ( Text "Bindless image array named " :<>: ShowType name )
+        decs
+        (RuntimeArray (Image props))
+      , ValidImageDecorations name (ImageUsageFromProperties props) decs
+      , BindlessMustBeSampled (ImageUsageFromProperties props) name
       )
   ValidGlobal name Storage.UniformConstant decs AccelerationStructure
     = ValidUniformDecorations
@@ -368,3 +380,13 @@ type family ErrorIfOpaqueRuntimeArray (hasOpaque :: Bool) (name :: Symbol) (k ::
       :$$: Text "is opaque, or contains an opaque type."
       )
   ErrorIfOpaqueRuntimeArray _ _ _ _ = ()
+
+-- | Ensure bindless runtime arrays only contain sampled images.
+type family BindlessMustBeSampled (usage :: SPIRV.ImageUsage) (name :: Symbol) :: Constraint where
+  BindlessMustBeSampled SPIRV.Image.Sampled _ = ()
+  BindlessMustBeSampled usage name =
+    TypeError
+      (    Text "Bindless image array named " :<>: ShowType name
+      :<>: Text " must use 'Sampled' image usage, found "
+      :<>: ShowType usage :<>: Text "."
+      )

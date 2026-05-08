@@ -172,7 +172,7 @@ accessChain (basePtrID, SPIRV.PointerTy storage baseTy) safe indices
       case baseTy of
         SPIRV.RuntimeArray {} -> do
           addDecoration v SPIRV.NonUniformEXT
-          requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing])
+          requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing, SPIRV.Cap.ShaderNonUniform])
         _ -> pure ()
       pure (v, accessPtrTy)
 

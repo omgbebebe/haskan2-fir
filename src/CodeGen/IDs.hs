@@ -217,7 +217,7 @@ typeID ty = TyID <$>
               -- Require bindless capabilities for runtime arrays of sampled images
               case a of
                 SPIRV.PrimTy.SampledImage _ -> do
-                  requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing])
+                  requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing, SPIRV.Cap.ShaderNonUniform])
                 _ -> pure ()
               mkTyConInstruction ( Arg eltTyID EndArgs ) v
             )

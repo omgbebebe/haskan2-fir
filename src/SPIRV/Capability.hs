@@ -213,7 +213,10 @@ pattern MultiViewport :: Capability
 pattern MultiViewport = Capability 57
 
 pattern RuntimeDescriptorArray :: Capability
-pattern RuntimeDescriptorArray = Capability 33
+pattern RuntimeDescriptorArray = Capability 5302
+
+pattern ShaderNonUniform :: Capability
+pattern ShaderNonUniform = Capability 5301
 
 pattern SampledImageArrayNonUniformIndexing :: Capability
 pattern SampledImageArrayNonUniformIndexing = Capability 65
@@ -323,6 +326,7 @@ showCapability StorageImageReadWithoutFormat = "StorageImageReadWithoutFormat"
 showCapability StorageImageWriteWithoutFormat = "StorageImageWriteWithoutFormat"
 showCapability MultiViewport = "MultiViewport"
 showCapability RuntimeDescriptorArray = "RuntimeDescriptorArray"
+showCapability ShaderNonUniform = "ShaderNonUniform"
 showCapability SampledImageArrayNonUniformIndexing = "SampledImageArrayNonUniformIndexing"
 showCapability StorageImageArrayNonUniformIndexing = "StorageImageArrayNonUniformIndexing"
 showCapability StorageBufferArrayNonUniformIndexing = "StorageBufferArrayNonUniformIndexing"

@@ -160,7 +160,7 @@ instance Put (Decoration Word32) where
   put NoContraction            = put @Word32 42
   put (InputAttachmentIndex i) = put @Word32 43 *> put i
   put (Alignment            i) = put @Word32 44 *> put i
-  put NonUniformEXT            = put @Word32 5309
+  put NonUniformEXT            = put @Word32 5300
 
   wordCount (SpecId               _) = 2
   wordCount (ArrayStride          _) = 2

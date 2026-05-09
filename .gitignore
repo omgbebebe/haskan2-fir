@@ -2,3 +2,5 @@
 *.o
 *.hi-boot
 *.o-boot
+dist-newstyle/
+test/

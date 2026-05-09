@@ -78,7 +78,7 @@ import FIR.ProgramState
   ( FunctionContext(TopLevel, InEntryPoint) )
 import qualified SPIRV.Capability as SPIRV.Cap
 import qualified SPIRV.Decoration as SPIRV
-  ( Decoration(NonUniformEXT) )
+  ( Decoration(NonUniform) )
 import qualified SPIRV.Operation as SPIRV.Op
 import qualified SPIRV.PrimTy    as SPIRV
 import qualified SPIRV.Stage     as SPIRV
@@ -168,11 +168,17 @@ accessChain (basePtrID, SPIRV.PointerTy storage baseTy) safe indices
           , args      = Arg basePtrID
                       $ toArgs is
           }
-      -- For runtime array accesses (bindless descriptors), add NonUniformEXT
+      -- For runtime array accesses (bindless descriptors), add NonUniform
+      -- and require capabilities based on element type (image vs buffer)
       case baseTy of
-        SPIRV.RuntimeArray {} -> do
-          addDecoration v SPIRV.NonUniformEXT
-          requireCapabilities (Set.fromList [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.SampledImageArrayNonUniformIndexing, SPIRV.Cap.ShaderNonUniform])
+        SPIRV.RuntimeArray eltTy _ _ -> do
+          addDecoration v SPIRV.NonUniform
+          let baseCaps = [SPIRV.Cap.RuntimeDescriptorArray, SPIRV.Cap.ShaderNonUniform]
+              extraCaps = case eltTy of
+                SPIRV.Image {}        -> [SPIRV.Cap.SampledImageArrayNonUniformIndexing]
+                SPIRV.SampledImage {} -> [SPIRV.Cap.SampledImageArrayNonUniformIndexing]
+                _                     -> []
+          requireCapabilities (Set.fromList (baseCaps ++ extraCaps))
         _ -> pure ()
       pure (v, accessPtrTy)
 

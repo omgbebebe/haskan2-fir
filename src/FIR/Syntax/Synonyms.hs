@@ -44,7 +44,7 @@ module FIR.Syntax.Synonyms
 
   -- * Synonyms for images
   -- ** Sampled images
-  , Texture1D, Texture2D, Texture3D, Texture
+  , Texture1D, Texture2D, Texture3D, Texture, TextureCube
   , Texture1DArray, Texture2DArray, Texture3DArray
   , BindlessTexture2D
   -- ** Storage images
@@ -267,6 +267,13 @@ type Texture3D decs fmt
       decs
       ( Image
          (Properties FloatingPointCoordinates (FormatDefault fmt) ThreeD (Just NotDepthImage) NonArrayed SingleSampled Sampled (Just fmt))
+      )
+
+type TextureCube decs fmt
+  = Global Storage.UniformConstant
+      decs
+      ( Image
+         (Properties FloatingPointCoordinates (FormatDefault fmt) Cube (Just NotDepthImage) NonArrayed SingleSampled Sampled (Just fmt))
       )
 
 type Image1D decs fmt

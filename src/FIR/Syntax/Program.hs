@@ -136,7 +136,7 @@ import CodeGen.Instruction
 import Control.Monad.Indexed
   ( (:=)(AtKey), Codensity(Codensity)
   , MonadIxFail(fail)
-  , ixFmap, ixPure, ixLiftA2
+  , ixFmap, ixPure, ixLiftA2, ixLiftA3
   )
 import qualified Control.Monad.Indexed as Indexed
 import Control.Type.Optic
@@ -246,6 +246,7 @@ import Math.Algebra.Class
   , Signed(..), Archimedean(..)
   , Floating(..), RealFloat(..)
   , Convert(..), Rounding(..)
+  , GLSLMath(..)
   )
 import Math.Linear
   ( Semimodule(..), LinearModule(..)
@@ -1170,6 +1171,13 @@ instance (ScalarTy a, RealFloat a, Eq a, Logic a ~ Bool, j ~ i) => RealFloat (Pr
   atan2      = ixLiftA2 atan2
   isNaN      = ixFmap   isNaN
   isInfinite = ixFmap   isInfinite
+
+instance (ScalarTy a, GLSLMath a, Logic a ~ Bool, j ~ i) => GLSLMath (Program i j (Code a)) where
+  clamp      = ixLiftA3 clamp
+  mix        = ixLiftA3 mix
+  step       = ixLiftA2 step
+  smoothstep = ixLiftA3 smoothstep
+  fract      = ixFmap   fract
 
 -- Numeric conversions
 

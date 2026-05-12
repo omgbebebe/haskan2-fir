@@ -688,6 +688,14 @@ pattern GLSL_Cross         :: Operation
 pattern GLSL_Cross         = ExtCode GLSL 68
 pattern GLSL_Normalize     :: Operation
 pattern GLSL_Normalize     = ExtCode GLSL 69
+pattern GLSL_Clamp         :: Operation
+pattern GLSL_Clamp         = ExtCode GLSL 43
+pattern GLSL_Mix           :: Operation
+pattern GLSL_Mix           = ExtCode GLSL 46
+pattern GLSL_Step          :: Operation
+pattern GLSL_Step          = ExtCode GLSL 48
+pattern GLSL_SmoothStep    :: Operation
+pattern GLSL_SmoothStep    = ExtCode GLSL 49
 -- OpenCL extended instructions
   -- floating point instructions
 pattern OpenCL_Acos :: Operation
@@ -1125,6 +1133,10 @@ showOperation GLSL_UMax = "UMax"
 showOperation GLSL_SMax = "SMax"
 showOperation GLSL_Cross = "Cross"
 showOperation GLSL_Normalize = "Normalize"
+showOperation GLSL_Clamp = "Clamp"
+showOperation GLSL_Mix = "Mix"
+showOperation GLSL_Step = "Step"
+showOperation GLSL_SmoothStep = "SmoothStep"
 -- OpenCL instructions
 showOperation OpenCL_Acos      = "Acos"
 showOperation OpenCL_Acosh     = "Acosh"

@@ -171,6 +171,7 @@ import Math.Algebra.Class
   , Floating(..), RealFloat(..)
   , Integral, Unsigned
   , Convert(..), Rounding(..)
+  , GLSLMath(..)
   )
 import Math.Algebra.GradedSemigroup
   ( GradedSemigroup(..) )
@@ -368,6 +369,13 @@ instance (ScalarTy a, RealFloat a, Eq a, Logic a ~ Bool) => RealFloat (Code a) w
   atan2      = primOp @a @SPIRV.FAtan2
   isNaN      = primOp @a @SPIRV.FIsNaN
   isInfinite = primOp @a @SPIRV.FIsInf
+
+instance (ScalarTy a, GLSLMath a, Logic a ~ Bool) => GLSLMath (Code a) where
+  clamp      = primOp @a @SPIRV.FClamp
+  mix        = primOp @a @SPIRV.FMix
+  step       = primOp @a @SPIRV.FStep
+  smoothstep = primOp @a @SPIRV.FSmoothStep
+  fract      = primOp @a @SPIRV.FFract
 
 instance (ScalarTy a, Integral a) => Integral (Code a) where
 instance (ScalarTy a, Unsigned a) => Unsigned (Code a) where

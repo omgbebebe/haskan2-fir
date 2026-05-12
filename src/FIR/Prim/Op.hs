@@ -34,7 +34,7 @@ module FIR.Prim.Op where
 import Prelude
   ( Show(..), Functor(..), fromIntegral )
 import Control.Applicative
-  ( liftA2 )
+  ( liftA2, liftA3 )
 import Data.Proxy
   ( Proxy(Proxy) )
 import GHC.TypeNats
@@ -72,6 +72,7 @@ import Math.Algebra.Class
   , DivisionRing(..)
   , Floating(..), RealFloat(..)
   , Convert(..), Rounding(..)
+  , GLSLMath(..)
   )
 import qualified SPIRV.PrimOp as SPIRV
 import qualified SPIRV.PrimTy as SPIRV
@@ -410,6 +411,37 @@ instance (ScalarTy a, RealFloat a, Logic a ~ Bool) => PrimOp SPIRV.FIsInf (a :: 
   vectorisation :: forall n. KnownNat n => Maybe (VecPrimOpType n SPIRV.FIsInf a)
   vectorisation = Just $ VecPrimOpType (Proxy @(V n a))
 
+instance (ScalarTy a, GLSLMath a) => PrimOp SPIRV.FFract (a :: Type) where
+  type PrimOpAugType SPIRV.FFract a = Val a :--> Val a
+  op = fract
+  opName = SPIRV.FloatOp SPIRV.FFract (scalarTy @a)
+  vectorisation :: forall n. KnownNat n => Maybe (VecPrimOpType n SPIRV.FFract a)
+  vectorisation = Just $ VecPrimOpType (Proxy @(V n a))
+instance (ScalarTy a, GLSLMath a) => PrimOp SPIRV.FClamp (a :: Type) where
+  type PrimOpAugType SPIRV.FClamp a = Val a :--> Val a :--> Val a :--> Val a
+  op = clamp
+  opName = SPIRV.FloatOp SPIRV.FClamp (scalarTy @a)
+  vectorisation :: forall n. KnownNat n => Maybe (VecPrimOpType n SPIRV.FClamp a)
+  vectorisation = Just $ VecPrimOpType (Proxy @(V n a))
+instance (ScalarTy a, GLSLMath a) => PrimOp SPIRV.FMix (a :: Type) where
+  type PrimOpAugType SPIRV.FMix a = Val a :--> Val a :--> Val a :--> Val a
+  op = mix
+  opName = SPIRV.FloatOp SPIRV.FMix (scalarTy @a)
+  vectorisation :: forall n. KnownNat n => Maybe (VecPrimOpType n SPIRV.FMix a)
+  vectorisation = Just $ VecPrimOpType (Proxy @(V n a))
+instance (ScalarTy a, GLSLMath a) => PrimOp SPIRV.FStep (a :: Type) where
+  type PrimOpAugType SPIRV.FStep a = Val a :--> Val a :--> Val a
+  op = step
+  opName = SPIRV.FloatOp SPIRV.FStep (scalarTy @a)
+  vectorisation :: forall n. KnownNat n => Maybe (VecPrimOpType n SPIRV.FStep a)
+  vectorisation = Just $ VecPrimOpType (Proxy @(V n a))
+instance (ScalarTy a, GLSLMath a) => PrimOp SPIRV.FSmoothStep (a :: Type) where
+  type PrimOpAugType SPIRV.FSmoothStep a = Val a :--> Val a :--> Val a :--> Val a
+  op = smoothstep
+  opName = SPIRV.FloatOp SPIRV.FSmoothStep (scalarTy @a)
+  vectorisation :: forall n. KnownNat n => Maybe (VecPrimOpType n SPIRV.FSmoothStep a)
+  vectorisation = Just $ VecPrimOpType (Proxy @(V n a))
+
 -- numeric conversions
 instance ( ScalarTy a, ScalarTy b, Convert '(a,b) ) => PrimOp SPIRV.Convert '(a,b) where
   type PrimOpAugType SPIRV.Convert '(a,b) = Val a :--> Val b
@@ -737,6 +769,27 @@ instance ( KnownNat n, ScalarTy a, RealFloat a, Logic a ~ Bool) => PrimOp ('Vect
   type PrimOpAugType ('Vectorise SPIRV.FIsInf) (V n a) = Val (V n a) :--> Val (V n Bool)
   op = fmap isInfinite
   opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FIsInf @a)) (val @n) (primTy @a)
+
+instance ( KnownNat n, ScalarTy a, GLSLMath a ) => PrimOp ('Vectorise SPIRV.FFract) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.FFract) (V n a) = Val (V n a) :--> Val (V n a)
+  op = fmap fract
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FFract @a)) (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, GLSLMath a ) => PrimOp ('Vectorise SPIRV.FClamp) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.FClamp) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = liftA3 clamp
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FClamp @a)) (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, GLSLMath a ) => PrimOp ('Vectorise SPIRV.FMix) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.FMix) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = liftA3 mix
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FMix @a)) (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, GLSLMath a ) => PrimOp ('Vectorise SPIRV.FStep) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.FStep) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = liftA2 step
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FStep @a)) (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, GLSLMath a ) => PrimOp ('Vectorise SPIRV.FSmoothStep) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.FSmoothStep) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = liftA3 smoothstep
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FSmoothStep @a)) (val @n) (primTy @a)
 
 instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.DotV (V n a) where
   type PrimOpAugType SPIRV.DotV (V n a) = Val (V n a) :--> Val (V n a) :--> Val a

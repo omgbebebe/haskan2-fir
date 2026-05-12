@@ -146,6 +146,11 @@ data FloatPrimOp
   | FInvSqrt
   | FIsNaN
   | FIsInf
+  | FClamp
+  | FMix
+  | FStep
+  | FSmoothStep
+  | FFract
   deriving stock Show
 
 data VecPrimOp
@@ -361,6 +366,19 @@ floatingOp bk FSqrt    s = ( backendOp bk GLSL_Sqrt    OpenCL_Sqrt    , Scalar s
 floatingOp bk FInvSqrt s = ( backendOp bk GLSL_InvSqrt OpenCL_InvSqrt , Scalar s )
 floatingOp _  FIsNaN   _ = ( IsNan, Boolean )
 floatingOp _  FIsInf   _ = ( IsInf, Boolean )
+floatingOp bk FClamp      s
+  | Vulkan <- bk = ( GLSL_Clamp     , Scalar s )
+  | otherwise    = error "todo: clamp not implemented in OpenCL backend"
+floatingOp bk FMix        s
+  | Vulkan <- bk = ( GLSL_Mix       , Scalar s )
+  | otherwise    = error "todo: mix not implemented in OpenCL backend"
+floatingOp bk FStep       s
+  | Vulkan <- bk = ( GLSL_Step      , Scalar s )
+  | otherwise    = error "todo: step not implemented in OpenCL backend"
+floatingOp bk FSmoothStep s
+  | Vulkan <- bk = ( GLSL_SmoothStep, Scalar s )
+  | otherwise    = error "todo: smoothstep not implemented in OpenCL backend"
+floatingOp bk FFract      s = ( backendOp bk GLSL_Fract OpenCL_Fract, Scalar s )
 
 vectorOp :: Backend -> VecPrimOp -> Word32 -> PrimTy -> (Operation, PrimTy)
 vectorOp bk (Vectorise prim) n ty = ( op bk prim, Vector n ty )

@@ -53,7 +53,7 @@ import qualified Numeric.Half as Half
 import Deriving.Base
   ( Base(..) ) -- newtype for deriving via base instances
 import Math.Logic.Class
-  ( Eq(Logic,(==)), Ord
+  ( Eq(Logic,(==)), Ord(..)
   , ifThenElse
   )
 import FIR.Prelude
@@ -411,6 +411,26 @@ deriving via Base Double instance RealFloat Double
 deriving via Base CFloat  instance RealFloat CFloat
 deriving via Base CDouble instance RealFloat CDouble
 
+class ( Floating a, Ord a ) => GLSLMath a where
+  clamp      :: a -> a -> a -> a
+  clamp x lo hi = min hi (max lo x)
+  mix        :: a -> a -> a -> a
+  mix x y t = x + t * (y - x)
+  step       :: a -> a -> a
+  smoothstep :: a -> a -> a -> a
+  fract      :: a -> a
+
+instance ( Prelude.Floating a, Prelude.Ord a, Prelude.RealFrac a, Prelude.Num a ) =>
+  GLSLMath (Base a) where
+  step edge x = if edge Prelude.> x then zero else fromInteger 1
+  smoothstep edge0 edge1 x =
+    let t = clamp ((x - edge0) / (edge1 - edge0)) zero (fromInteger 1)
+    in  t * t * (fromInteger 3 - fromInteger 2 * t)
+  fract (Base x) = Base (x Prelude.- Prelude.fromIntegral (Prelude.floor x))
+
+deriving via Base Half   instance GLSLMath Half
+deriving via Base Float  instance GLSLMath Float
+deriving via Base Double instance GLSLMath Double
 
 class ComplexFloat c a | c -> a where
   conjugate   :: c -> c

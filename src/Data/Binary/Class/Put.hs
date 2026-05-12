@@ -27,6 +27,8 @@ module Data.Binary.Class.Put
   ) where
 
 -- base
+import Data.Foldable
+  ( traverse_ )
 import Data.Coerce
   ( coerce )
 import Data.Int
@@ -71,6 +73,12 @@ class Put a where
   -- | Memory footprint, as a multiple of __32 bits__
   -- (/not/ the usual 8 bits as in 'Foreign.Storable.sizeOf').
   wordCount :: a -> Word32
+  -- | Rewrite SPIR-V IDs within a value. Default: identity.
+  mapIDs    :: (Word32 -> Word32) -> a -> a
+  mapIDs _ = id
+  -- | Extract all SPIR-V IDs from a value. Default: empty.
+  extractIDs :: a -> [Word32]
+  extractIDs _ = []
 
 ---------------------------------------------------------------------------
 -- $instances

@@ -36,7 +36,7 @@ by Josef Svenningsson and Emil Axelsson.
 
 module FIR.AST
   ( -- * Main AST data type
-    AST, Code
+    AST, Code, AllOpsF
     -- * Syntactic type class
   , Syntactic(Internal, toAST, fromAST)
   , SyntacticVal, InternalType

@@ -21,28 +21,40 @@ Main code generation function: dispatches code generation on the constructors of
 -}
 
 module CodeGen.CodeGen
-  ( CodeGen(codeGenArgs), codeGen, runCodeGen )
+  ( CodeGen(codeGenArgs), codeGen, runCodeGen
+  , CodeGenMemo(tryMemoize, storeMemo)
+  )
   where
 
 -- base
 import Prelude
   hiding ( Monad(..) )
 import Data.Foldable
-  ( for_ )
+  ( for_, traverse_ )
 import Data.Kind
   ( Type )
+import Data.List
+  ( find )
 import Data.Proxy
   ( Proxy )
 import Data.Type.Equality
   ( (:~:)(Refl) )
 import qualified GHC.Stack
   ( callStack )
+import System.IO.Unsafe
+  ( unsafePerformIO )
+import System.Mem.StableName
+  ( StableName, makeStableName, hashStableName, eqStableName )
 import Unsafe.Coerce
   ( unsafeCoerce )
 
--- bytestring
+-- containers
+import qualified Data.IntMap as IntMap
+
+-- binary
 import Data.ByteString.Lazy
   ( ByteString )
+import qualified Data.Binary.Put as Binary
 
 -- mtl
 import Control.Monad
@@ -52,7 +64,7 @@ import Control.Monad.Except
 
 -- lens
 import Control.Lens
-  ( use, assign, view )
+  ( use, assign, view, modifying )
 
 -- text-short
 import Data.Text.Short
@@ -73,7 +85,7 @@ import CodeGen.Application
 import CodeGen.Applicative
   ( ) -- CodeGen instances for Ap, Pure
 import CodeGen.Binary
-  ( putModule )
+  ( putModule, putInstruction, compactIDs )
 import CodeGen.CFG
   ( locally ) -- + CodeGen instances for If, IfM, Switch, SwitchM, While, Locally, Embed
 import CodeGen.Composite
@@ -105,7 +117,9 @@ import CodeGen.State
    , _functionContext
    , _localBinding
    , _userGlobals
+   , _astMemo
    , initialState
+   , emittedInstructions
    )
 import Data.Type.Known
   ( knownValue )
@@ -138,10 +152,13 @@ runCodeGen :: Nullary a => CGContext -> AST a -> Either ShortText (ByteString, C
 runCodeGen context ast
   = case runCGMonad context (initialState context) (declareGlobals *> codeGen ast) of
 
-      Right (_, cgState, body)
-        -> case runExceptTPutM $ putModule context cgState of
-              Right ((), decs) -> Right ( decs <> body, cgState )
-              Left err         -> Left err
+      Right (_, cgState, _body)
+        -> let cgState' = compactIDs cgState
+           in case runExceptTPutM $ putModule context cgState' of
+                Right ((), decs) ->
+                  let body = Binary.runPut $ traverse_ putInstruction (emittedInstructions cgState')
+                  in Right (decs <> body, cgState')
+                Left err -> Left err
 
       Left err -> Left err
 
@@ -157,8 +174,51 @@ declareGlobals = do
 class CodeGen (ast :: AugType -> Type) where
   codeGenArgs :: Nullary r => Application ast f r -> CGMonad (ID, SPIRV.PrimTy)
 
-codeGen :: ( CodeGen ast, Nullary v ) => ast v -> CGMonad (ID, SPIRV.PrimTy)
-codeGen v = codeGenArgs (Nullary v)
+class CodeGenMemo (ast :: AugType -> Type) where
+  tryMemoize :: Nullary v => ast v -> CGMonad (Maybe (ID, SPIRV.PrimTy))
+  storeMemo  :: Nullary v => ast v -> (ID, SPIRV.PrimTy) -> CGMonad ()
+
+astKey :: a -> Int
+astKey v = unsafePerformIO $ do
+  sn <- makeStableName v
+  pure (hashStableName sn)
+{-# NOINLINE astKey #-}
+
+astStableName :: a -> StableName ()
+astStableName v = unsafePerformIO $ do
+  sn <- makeStableName v
+  pure (unsafeCoerce sn :: StableName ())
+{-# NOINLINE astStableName #-}
+
+instance CodeGenMemo AST where
+  tryMemoize v = do
+    let key = astKey v
+        sn  = astStableName v
+    memo <- use _astMemo
+    pure $ case IntMap.lookup key memo of
+      Nothing -> Nothing
+      Just entries -> case find (\(sn', _, _) -> eqStableName sn sn') entries of
+        Nothing -> Nothing
+        Just (_, id_, ty) -> Just (id_, ty)
+
+  storeMemo v (id_, ty) = do
+    let key = astKey v
+        sn  = astStableName v
+    modifying _astMemo (IntMap.insertWith (++) key [(sn, id_, ty)])
+
+instance {-# OVERLAPPABLE #-} CodeGenMemo ast where
+  tryMemoize _ = pure Nothing
+  storeMemo  _ _ = pure ()
+
+codeGen :: ( CodeGen ast, Nullary v, CodeGenMemo ast ) => ast v -> CGMonad (ID, SPIRV.PrimTy)
+codeGen v = do
+  mb <- tryMemoize v
+  case mb of
+    Just res -> pure res
+    Nothing -> do
+      res <- codeGenArgs (Nullary v)
+      storeMemo v res
+      pure res
 
 instance BottomUp CodeGen vs => CodeGen (VariantF vs) where
   codeGenArgs (Applied f args) =

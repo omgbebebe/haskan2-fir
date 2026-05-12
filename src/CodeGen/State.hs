@@ -30,8 +30,15 @@ import Data.Maybe
   ( fromMaybe )
 import Data.Word
   ( Word32 )
+import System.IO.Unsafe
+  ( unsafePerformIO )
+import System.Mem.StableName
+  ( StableName, makeStableName, hashStableName, eqStableName )
 
 -- containers
+import Data.IntMap
+  ( IntMap )
+import qualified Data.IntMap as IntMap
 import Data.Map
   ( Map )
 import qualified Data.Map as Map
@@ -177,8 +184,42 @@ data CGState
       -- Used to keep track of auxiliary temporary pointers
       -- (e.g. a pointer created for a runtime access chain operation).
       , temporaryPointers   :: Map ID                                (ID, PointerState)
+
+      -- | Buffer of emitted body instructions (for ID compaction).
+      , emittedInstructions :: Seq                                   Instruction
+
+      -- | Memoization table for AST code generation.
+      -- Each entry maps a stable name hash to a list of entries with full stable name equality.
+      , astMemo             :: IntMap [(StableName (), ID, SPIRV.PrimTy)]
       }
-  deriving stock Show
+
+instance Show CGState where
+  show s = "CGState { currentID = " ++ show (currentID s)
+        ++ ", currentBlock = " ++ show (currentBlock s)
+        ++ ", loopBlockIDs = " ++ show (loopBlockIDs s)
+        ++ ", earlyExits = " ++ show (earlyExits s)
+        ++ ", earlyExit = " ++ show (earlyExit s)
+        ++ ", functionContext = " ++ show (functionContext s)
+        ++ ", neededCapabilities = " ++ show (neededCapabilities s)
+        ++ ", neededExtensions = " ++ show (neededExtensions s)
+        ++ ", knownExtInsts = " ++ show (knownExtInsts s)
+        ++ ", knownStringLits = " ++ show (knownStringLits s)
+        ++ ", names = " ++ show (names s)
+        ++ ", entryPoints = " ++ show (entryPoints s)
+        ++ ", interfaces = " ++ show (interfaces s)
+        ++ ", decorations = " ++ show (decorations s)
+        ++ ", memberDecorations = " ++ show (memberDecorations s)
+        ++ ", knownTypes = " ++ show (knownTypes s)
+        ++ ", knownConstants = " ++ show (knownConstants s)
+        ++ ", knownUndefineds = " ++ show (knownUndefineds s)
+        ++ ", usedGlobals = " ++ show (usedGlobals s)
+        ++ ", knownBindings = " ++ show (knownBindings s)
+        ++ ", localBindings = " ++ show (localBindings s)
+        ++ ", localVariables = " ++ show (localVariables s)
+        ++ ", rayQueries = " ++ show (rayQueries s)
+        ++ ", temporaryPointers = " ++ show (temporaryPointers s)
+        ++ ", emittedInstructions = " ++ show (emittedInstructions s)
+        ++ ", astMemo = <memo table> }"
 
 data PointerState
   = Fresh
@@ -224,6 +265,8 @@ initialState CGContext { userCapabilities, userExtensions }
       , localVariables      = Map.empty
       , rayQueries          = Map.empty
       , temporaryPointers   = Map.empty
+      , emittedInstructions = Seq.empty
+      , astMemo             = IntMap.empty
       }
 
 
@@ -464,6 +507,12 @@ _temporaryPointers = lens temporaryPointers ( \s v -> s { temporaryPointers = v 
 
 _temporaryPointer :: ID -> Lens' CGState (Maybe (ID, PointerState))
 _temporaryPointer v = _temporaryPointers . at v
+
+_emittedInstructions :: Lens' CGState (Seq Instruction)
+_emittedInstructions = lens emittedInstructions ( \s v -> s { emittedInstructions = v } )
+
+_astMemo :: Lens' CGState (IntMap [(StableName (), ID, SPIRV.PrimTy)])
+_astMemo = lens astMemo ( \s v -> s { astMemo = v } )
 
 
 _userGlobals

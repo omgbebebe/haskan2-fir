@@ -19,18 +19,26 @@ module CodeGen.Binary
   ( putModule
   , instruction
   , whenEmitting
+  , putInstruction
+  , compactIDs
   )
   where
 
 -- base
 import Control.Monad
   ( when )
+import Control.Monad.State
+  ( State, execState, modify )
 import Data.Coerce
   ( coerce )
 import Data.List
   ( sortOn)
 import Data.Foldable
-  ( traverse_)
+  ( traverse_, for_, toList )
+import Data.Maybe
+  ( fromJust )
+import Data.Typeable
+  ( Typeable, cast )
 import Data.Word
   ( Word32 )
 import qualified Data.Bits as Bits
@@ -43,12 +51,16 @@ import qualified Data.Binary.Put as Binary
 import Data.Map.Strict
   ( Map )
 import qualified Data.Map.Strict as Map
+import Data.Sequence
+  ( Seq, (|>) )
+import qualified Data.Sequence as Seq
 import Data.Set
   ( Set )
+import qualified Data.Set as Set
 
 -- lens
 import Control.Lens
-  ( use, view )
+  ( use, view, modifying )
 
 -- mtl
 import Control.Monad.Except
@@ -75,17 +87,24 @@ import CodeGen.Instruction
   ( Args(..), toArgs
   , ID(..), TyID(..), pattern MkTyID
   , Instruction(..)
+  , mapInstructionIDs
   )
 import CodeGen.Monad
   ( CGMonad, note, liftPut )
 import CodeGen.State
   ( CGContext(..), CGState(..)
   , _emittingCode, _earlyExit
+  , LoopBlockIDs(..), ContinueOrMergeID(..)
+  , _emittedInstructions
   )
 import Data.Binary.Class.Put
-  ( Put(put, wordCount) )
+  ( Put(put, wordCount, mapIDs, extractIDs) )
+import Debug.Trace
+  ( trace )
 import Data.Containers.Traversals
   ( traverseWithKey_, traverseSet_ )
+import Control.Arrow
+  ( (***) )
 import qualified SPIRV.Capability    as SPIRV
 import qualified SPIRV.Decoration    as SPIRV
 import qualified SPIRV.ExecutionMode as SPIRV
@@ -143,13 +162,20 @@ whenEmitting action = do
     action
 
 -- | Emit code for an instruction (wrapper).
+-- Instructions are buffered in CGState for ID compaction, then serialized after.
 instruction :: Instruction -> CGMonad ()
 instruction inst = whenEmitting do
   case operation inst of
     SPIRV.Op.ExtCode ext _ -> do
       extID <- extInstID ext
-      liftPut $ putExtendedInstruction extID inst
-    _ -> liftPut $ putInstruction inst
+      let inst' = case inst of
+            Instruction { operation = SPIRV.Op.ExtCode _ extOpCode, .. } ->
+              Instruction { operation = SPIRV.Op.ExtInst
+                          , args = Arg extID $ Arg extOpCode args
+                          , ..
+                          }
+      modifying _emittedInstructions (|> inst')
+    _ -> modifying _emittedInstructions (|> inst)
 
 putInstruction :: Instruction -> Binary.Put
 putInstruction Instruction { operation = op, resTy = opResTy, resID = opResID, args = opArgs }
@@ -438,3 +464,86 @@ putGlobals typeIDs
                     , args  = Arg storage EndArgs
                     }
       )
+
+----------------------------------------------------------------------------
+-- ID compaction
+
+-- | Compact SPIR-V IDs by renumbering all used IDs contiguously starting from 1.
+-- Updates the 'currentID' (bound) and rewrites all ID references in 'CGState'.
+compactIDs :: CGState -> CGState
+compactIDs state =
+  let allUsedIDs = collectAllIDs state
+      sortedIDs  = Set.toAscList allUsedIDs
+      idMap      = Map.fromList (zip sortedIDs [1..])
+      remap n    = Map.findWithDefault n n idMap
+      newBound   = fromIntegral (Map.size idMap) + 1
+      oldBound   = idNumber (currentID state)
+      nEmitted   = length (emittedInstructions state)
+      nTypes     = Map.size (knownTypes state)
+      nConsts    = Map.size (knownConstants state)
+      -- Count instruction types for debugging
+      instCounts = Map.fromListWith (+) [ (show (operation inst), 1) | inst <- toList (emittedInstructions state) ]
+      topInsts   = take 20 (sortOn (negate . snd) (Map.toList instCounts))
+      instSummary = unlines [ "  " ++ op ++ ": " ++ show n | (op, n) <- topInsts ]
+  in trace ("compactIDs: oldBound=" ++ show oldBound ++ " newBound=" ++ show newBound ++ " usedIDs=" ++ show (Set.size allUsedIDs) ++ " emitted=" ++ show nEmitted ++ " types=" ++ show nTypes ++ " consts=" ++ show nConsts ++ "\nTop instructions:\n" ++ instSummary)
+     (rewriteCGState remap (state { currentID = ID newBound }))
+
+collectAllIDs :: CGState -> Set Word32
+collectAllIDs state = execState (collectCGStateIDs state) Set.empty
+
+collectCGStateIDs :: CGState -> State (Set Word32) ()
+collectCGStateIDs s = do
+  -- Module-level declarations emitted by putModule
+  for_ (Map.elems $ knownExtInsts s) addID
+  for_ (Map.elems $ knownStringLits s) addID
+  for_ (Set.toList $ names s) $ \(i, _) -> addID i
+  for_ (Map.elems $ entryPoints s) addID
+  for_ (Map.elems $ interfaces s) $ \m -> for_ (Map.elems m) addID
+  for_ (Map.keys $ decorations s) addID
+  for_ (Map.keys $ memberDecorations s) $ \(t, _) -> addID (tyID t)
+  for_ (Map.elems $ knownTypes s) addInstructionIDs
+  for_ (Map.elems $ knownConstants s) addInstructionIDs
+  for_ (Map.elems $ knownUndefineds s) $ \(i, t) -> addID i >> addID (tyID t)
+  for_ (Map.elems $ usedGlobals s) $ \(i, _) -> addID i
+  for_ (Map.elems $ knownBindings s) $ \(i, _) -> addID i
+  -- Function body instructions
+  for_ (emittedInstructions s) addInstructionIDs
+  where
+    addID (ID n) = modify (Set.insert n)
+    addInstructionIDs inst = do
+      traverse_ (addID . tyID) (resTy inst)
+      traverse_ addID (resID inst)
+      addArgsIDs (args inst)
+    addArgsIDs EndArgs = pure ()
+    addArgsIDs (Arg a as) = do
+      for_ (extractIDs a) (modify . Set.insert)
+      addArgsIDs as
+
+mapContinueOrMergeID :: (Word32 -> Word32) -> ContinueOrMergeID -> ContinueOrMergeID
+mapContinueOrMergeID f (ContinueBlockID i) = ContinueBlockID (mapIDs f i)
+mapContinueOrMergeID f (MergeBlockID i) = MergeBlockID (mapIDs f i)
+
+rewriteCGState :: (Word32 -> Word32) -> CGState -> CGState
+rewriteCGState f s = s
+  { currentID           = mapIDs f (currentID s)
+  , currentBlock        = fmap (mapIDs f) (currentBlock s)
+  , loopBlockIDs        = fmap (\(LoopBlockIDs c m) -> LoopBlockIDs (mapIDs f c) (mapIDs f m)) (loopBlockIDs s)
+  , earlyExits          = Map.mapKeys (mapIDs f) $ Map.map (\(v, bindings) -> (mapContinueOrMergeID f v, Map.map (mapIDs f *** id) bindings)) (earlyExits s)
+  , knownExtInsts       = Map.map (mapIDs f) (knownExtInsts s)
+  , knownStringLits     = Map.map (mapIDs f) (knownStringLits s)
+  , names               = Set.map (\(i, name) -> (mapIDs f i, name)) (names s)
+  , entryPoints         = Map.map (mapIDs f) (entryPoints s)
+  , interfaces          = Map.map (Map.map (mapIDs f)) (interfaces s)
+  , decorations         = Map.mapKeys (mapIDs f) (decorations s)
+  , memberDecorations   = Map.mapKeys (\(t, i) -> (mapIDs f t, i)) (memberDecorations s)
+  , knownTypes          = Map.map (mapInstructionIDs f) (knownTypes s)
+  , knownConstants      = Map.map (mapInstructionIDs f) (knownConstants s)
+  , knownUndefineds     = Map.map (\(i, t) -> (mapIDs f i, mapIDs f t)) (knownUndefineds s)
+  , usedGlobals         = Map.map (\(i, p) -> (mapIDs f i, p)) (usedGlobals s)
+  , knownBindings       = Map.map (\(i, t) -> (mapIDs f i, t)) (knownBindings s)
+  , localBindings       = Map.map (\(i, t) -> (mapIDs f i, t)) (localBindings s)
+  , localVariables      = Map.mapKeys (mapIDs f) (localVariables s)
+  , rayQueries          = Map.map (mapIDs f) (rayQueries s)
+  , temporaryPointers   = Map.map (\(i, p) -> (mapIDs f i, p)) (temporaryPointers s)
+  , emittedInstructions = fmap (mapInstructionIDs f) (emittedInstructions s)
+  }

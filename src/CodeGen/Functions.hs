@@ -38,6 +38,7 @@ import Data.ByteString.Lazy
   ( ByteString )
 
 -- containers
+import qualified Data.IntMap as IntMap
 import qualified Data.Map.Strict as Map
 
 -- lens
@@ -81,7 +82,6 @@ import CodeGen.Monad
   ( CGMonad, runCGMonad
   , MonadFresh(fresh)
   , note
-  , liftPut
   , createIDRec
   )
 import CodeGen.Pointers
@@ -95,6 +95,7 @@ import CodeGen.State
   , _interface
   , _entryPoint
   , _userFunction
+  , _astMemo
   , requireCapabilities
   )
 import Data.Containers.Traversals
@@ -190,7 +191,9 @@ inContext :: forall a. VLFunctionContext -> [(ShortText, (SPIRV.PrimTy, Permissi
 inContext context as body
   = do
       outsideBindings <- use _localBindings
+      outsideMemo     <- use _astMemo
       assign _functionContext context
+      assign _astMemo IntMap.empty
       traverse_ (uncurry declareArgument) as
       newBlock
 
@@ -200,7 +203,7 @@ inContext context as body
       cgState   <- get
       let bodyGenOutput :: Either ShortText (a, CGState, ByteString)
           bodyGenOutput = runCGMonad cgContext cgState body
-      (a, bodyState, bodyASM)
+      (a, bodyState, _bodyASM)
         <- case bodyGenOutput of
             Left err -> throwError err
             Right (b,s,asm) -> pure (b,s,asm)
@@ -210,13 +213,11 @@ inContext context as body
       -- declare the local variables for this function
       traverseWithKey_ declareVariable (localVariables bodyState)
 
-      -- emit assembly for the function body
-      liftPut $ Binary.putLazyByteString bodyASM
-
       -- reset local bindings after end of function
       assign _functionContext TopLevel
       assign _localBindings   outsideBindings
       assign _localVariables  Map.empty
+      assign _astMemo         outsideMemo
       pure a
 
 ----------------------------------

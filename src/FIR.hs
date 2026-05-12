@@ -253,11 +253,19 @@ import Data.Set
 
 -- directory
 import System.Directory
-  ( doesFileExist, findExecutable )
+  ( doesFileExist, findExecutable, renameFile, removeFile )
 
 -- process
 import System.Process
-  ( callProcess )
+  ( readProcessWithExitCode )
+
+-- exit
+import System.Exit
+  ( ExitCode(..) )
+
+-- io
+import System.IO
+  ( hPutStrLn, stderr )
 
 -- generic-monoid
 import Data.Monoid.Generic
@@ -426,11 +434,30 @@ class CompilableProgram prog where
             mbSpirvOpt <- findExecutable "spirv-opt"
             case mbSpirvOpt of
               Nothing -> Prelude.pure () -- graceful degradation
-              Just _  -> callProcess "spirv-opt"
-                           [ "-O"
-                           , filePath
-                           , "-o", filePath
-                           ]
+              Just spirvOptPath -> do
+                let tmpPath = filePath Prelude.++ ".opt"
+                ( exitCode, _, errOut ) <- readProcessWithExitCode
+                  spirvOptPath
+                  [ "-O"
+                  , filePath
+                  , "-o", tmpPath
+                  ]
+                  ""
+                case exitCode of
+                  ExitSuccess -> do
+                    -- Atomic rename avoids in-place overwrite race
+                    renameFile tmpPath filePath
+                  ExitFailure code -> do
+                    hPutStrLn stderr $
+                      "WARNING: spirv-opt failed with exit code " Prelude.++ show code
+                    hPutStrLn stderr $
+                      "  stderr: " Prelude.++ errOut
+                    hPutStrLn stderr $
+                      "  Keeping unoptimized SPIR-V: " Prelude.++ filePath
+                    -- Clean up partial temp file
+                    doesFileExist tmpPath Prelude.>>= \case
+                      True  -> removeFile tmpPath
+                      False -> Prelude.pure ()
         | otherwise = Prelude.pure ()
 
 instance ( KnownDefinitions defs ) => CompilableProgram (Module defs) where

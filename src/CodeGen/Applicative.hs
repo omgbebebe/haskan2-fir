@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE InstanceSigs           #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE PatternSynonyms        #-}
@@ -72,7 +73,7 @@ import qualified Data.Text.Short as ShortText
 import Data.Variant.VariantF
   ( VariantF, ApplyAll, BottomUp(toBottomUp) )
 import Data.Variant.EGADT
-  ( EGADT(..), HVariantF(..) )
+  ( EGADT(..), HVariantF(..), pattern VF )
 
 -- fir
 import CodeGen.Application
@@ -137,6 +138,8 @@ import FIR.Prim.Types
   )
 import FIR.Syntax.AST
   ( ) -- 'PrimFunc' instances, optic instances
+import FIR.AST.ControlFlow
+  ( SelectionF(..), pattern If )
 import Math.Algebra.Class
   ( Semiring((*)), Integral )
 import Math.Linear
@@ -463,3 +466,15 @@ applyvPrimOp vPrimOp as = case allDict @PrimTyVal @(FunArgs f) of
 
 type family SkipFirstArg (x :: AugType) :: AugType where
   SkipFirstArg (_ :--> b) = b
+
+instance (KnownNat n, SanitiseVectorisation n AST) => SanitiseVectorisation n (SelectionF AST) where
+  sanitiseVectorisationArgs :: forall f r. PrimTy r => Application (SelectionF AST) f (Val r) -> Maybe (Code (V n r))
+  sanitiseVectorisationArgs (Applied IfF (c `ConsAST` t `ConsAST` f `ConsAST` NilAST))
+    | Just c' <- sanitiseVectorisation @n c
+    , Just t' <- sanitiseVectorisation @n t
+    , Just f' <- sanitiseVectorisation @n f
+    = let ifNode = (If :: AST (Val Bool :--> Val r :--> Val r :--> Val r))
+      in Just $ unsafeCoerce ((ifNode :$ unsafeCoerce c') :$ unsafeCoerce t') :$ unsafeCoerce f'
+    | otherwise
+    = Nothing
+  sanitiseVectorisationArgs _ = Nothing

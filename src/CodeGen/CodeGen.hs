@@ -178,22 +178,15 @@ class CodeGenMemo (ast :: AugType -> Type) where
   tryMemoize :: Nullary v => ast v -> CGMonad (Maybe (ID, SPIRV.PrimTy))
   storeMemo  :: Nullary v => ast v -> (ID, SPIRV.PrimTy) -> CGMonad ()
 
-astKey :: a -> Int
-astKey v = unsafePerformIO $ do
+astKeyAndStableName :: a -> (Int, StableName ())
+astKeyAndStableName v = unsafePerformIO $ do
   sn <- makeStableName v
-  pure (hashStableName sn)
-{-# NOINLINE astKey #-}
-
-astStableName :: a -> StableName ()
-astStableName v = unsafePerformIO $ do
-  sn <- makeStableName v
-  pure (unsafeCoerce sn :: StableName ())
-{-# NOINLINE astStableName #-}
+  pure (hashStableName sn, unsafeCoerce sn :: StableName ())
+{-# NOINLINE astKeyAndStableName #-}
 
 instance CodeGenMemo AST where
   tryMemoize v = do
-    let key = astKey v
-        sn  = astStableName v
+    let (key, sn) = astKeyAndStableName v
     memo <- use _astMemo
     pure $ case IntMap.lookup key memo of
       Nothing -> Nothing
@@ -202,8 +195,7 @@ instance CodeGenMemo AST where
         Just (_, id_, ty) -> Just (id_, ty)
 
   storeMemo v (id_, ty) = do
-    let key = astKey v
-        sn  = astStableName v
+    let (key, sn) = astKeyAndStableName v
     modifying _astMemo (IntMap.insertWith (++) key [(sn, id_, ty)])
 
 instance {-# OVERLAPPABLE #-} CodeGenMemo ast where

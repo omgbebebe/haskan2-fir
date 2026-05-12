@@ -253,7 +253,11 @@ import Data.Set
 
 -- directory
 import System.Directory
-  ( doesFileExist )
+  ( doesFileExist, findExecutable )
+
+-- process
+import System.Process
+  ( callProcess )
 
 -- generic-monoid
 import Data.Monoid.Generic
@@ -361,6 +365,7 @@ data CompilerFlag
   | Debug  -- ^ Include additional debug instructions, such as source-code line-number annotations and @debugPrintf@ output.
   | Assert -- ^ Include additional assertions.
   | SPIRV SPIRV.Version -- ^ SPIR-V version number.
+  | Optimize -- ^ Run spirv-opt on the generated SPIR-V file.
   deriving stock ( Prelude.Eq, Show )
 
 updateContextFromFlags :: CGContext -> [ CompilerFlag ] -> CGContext
@@ -371,6 +376,7 @@ updateContextFromFlags = foldl updateContext
     updateContext ctxt Debug       = ctxt { debugging    = True  }
     updateContext ctxt Assert      = ctxt { asserting    = True  }
     updateContext ctxt (SPIRV ver) = ctxt { spirvVersion = ver   }
+    updateContext ctxt Optimize    = ctxt
 
 -- | Information about requirements for a given SPIR-V module,
 -- such as which SPIR-V capabilities and extensions are needed.
@@ -401,15 +407,31 @@ class CompilableProgram prog where
         -> Prelude.pure (Left err)
       Right (mbBin, reqs)
         | Just (ModuleBinary bytes) <- mbBin
-        -> writeBytesAtomically bytes $> Right reqs
+        -> do
+          writeBytesAtomically bytes
+          whenOptimize
+          Prelude.pure (Right reqs)
         | otherwise
         -> Prelude.pure ( Right reqs )
     where
       writeBytesAtomically :: ByteString -> IO ()
-      writeBytesAtomically bytes = 
+      writeBytesAtomically bytes =
        doesFileExist filePath Prelude.>>= \case
          False -> ByteString.writeFile      filePath bytes
          True  -> atomicReplaceFile Nothing filePath bytes
+
+      whenOptimize :: IO ()
+      whenOptimize
+        | Optimize `Prelude.elem` flags = do
+            mbSpirvOpt <- findExecutable "spirv-opt"
+            case mbSpirvOpt of
+              Nothing -> Prelude.pure () -- graceful degradation
+              Just _  -> callProcess "spirv-opt"
+                           [ "-O"
+                           , filePath
+                           , "-o", filePath
+                           ]
+        | otherwise = Prelude.pure ()
 
 instance ( KnownDefinitions defs ) => CompilableProgram (Module defs) where
   compile flags (Module program)

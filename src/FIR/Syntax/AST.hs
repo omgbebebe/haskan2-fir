@@ -43,6 +43,7 @@ module FIR.Syntax.AST
 
     -- vector operations
   , (^*^), minV, maxV, clampV, mixV, stepV, smoothstepV, fractV
+  , sinV, cosV, tanV, sqrtV, invSqrtV, powV, expV, logV
 
     -- + orphan instances
   )
@@ -1188,6 +1189,46 @@ smoothstepV = primOp @(V n a) @('Vectorise SPIRV.FSmoothStep)
 fractV :: forall n a. (KnownNat n, ScalarTy a, GLSLMath a)
        => Code (V n a) -> Code (V n a)
 fractV = primOp @(V n a) @('Vectorise SPIRV.FFract)
+
+-- | Component-wise vector sine.
+sinV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a)
+sinV = primOp @(V n a) @('Vectorise SPIRV.FSin)
+
+-- | Component-wise vector cosine.
+cosV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a)
+cosV = primOp @(V n a) @('Vectorise SPIRV.FCos)
+
+-- | Component-wise vector tangent.
+tanV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a)
+tanV = primOp @(V n a) @('Vectorise SPIRV.FTan)
+
+-- | Component-wise vector square root.
+sqrtV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+      => Code (V n a) -> Code (V n a)
+sqrtV = primOp @(V n a) @('Vectorise SPIRV.FSqrt)
+
+-- | Component-wise vector inverse square root.
+invSqrtV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+         => Code (V n a) -> Code (V n a)
+invSqrtV = primOp @(V n a) @('Vectorise SPIRV.FInvSqrt)
+
+-- | Component-wise vector power.
+powV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a) -> Code (V n a)
+powV = primOp @(V n a) @('Vectorise SPIRV.FPow)
+
+-- | Component-wise vector exponential.
+expV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a)
+expV = primOp @(V n a) @('Vectorise SPIRV.FExp)
+
+-- | Component-wise vector logarithm.
+logV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a)
+logV = primOp @(V n a) @('Vectorise SPIRV.FLog)
 
 instance (ScalarTy a, Floating a) => Inner Nat (Code (V 0 a)) where
   (^.^) :: forall n. KnownNat n

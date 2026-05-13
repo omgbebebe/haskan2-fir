@@ -84,6 +84,7 @@ allTests
            [ ( "Smoke"          , Validate )
            , ( "ComponentWiseMul", Validate )
            , ( "VectorOps"      , Validate )
+           , ( "VectorTrig"     , Validate )
            ]
     , Folder "Matrix"
            [ ( "Applicative", Validate )

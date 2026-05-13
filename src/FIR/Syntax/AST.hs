@@ -44,6 +44,7 @@ module FIR.Syntax.AST
     -- vector operations
   , (^*^), minV, maxV, clampV, mixV, stepV, smoothstepV, fractV
   , sinV, cosV, tanV, sqrtV, invSqrtV, powV, expV, logV
+  , absV, signV
   , reflectV, refractV, faceForwardV
 
     -- matrix operations
@@ -1233,6 +1234,16 @@ expV = primOp @(V n a) @('Vectorise SPIRV.FExp)
 logV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
      => Code (V n a) -> Code (V n a)
 logV = primOp @(V n a) @('Vectorise SPIRV.FLog)
+
+-- | Component-wise vector absolute value.
+absV :: forall n a. (KnownNat n, ScalarTy a, Signed a)
+     => Code (V n a) -> Code (V n a)
+absV = primOp @(V n a) @('Vectorise SPIRV.Abs)
+
+-- | Component-wise vector sign.
+signV :: forall n a. (KnownNat n, ScalarTy a, Signed a)
+      => Code (V n a) -> Code (V n a)
+signV = primOp @(V n a) @('Vectorise SPIRV.Sign)
 
 -- | Vector reflection.
 reflectV :: forall n a. (KnownNat n, ScalarTy a, Floating a)

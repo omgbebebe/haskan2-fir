@@ -52,7 +52,7 @@ import SPIRV.Operation
 import SPIRV.PrimTy
   ( PrimTy(..) )
 import SPIRV.ScalarTy
-  ( ScalarTy(..), Signedness(..) )
+  ( ScalarTy(..), Signedness(..), Width(..) )
 import SPIRV.Stage
   ( Backend(Vulkan, OpenCL) )
 
@@ -123,6 +123,9 @@ data NumPrimOp
   | Mod
   | Rem
   | Quot
+  | FindILsb
+  | FindSMsb
+  | FindUMsb
   deriving stock Show
 
 data FloatPrimOp
@@ -151,6 +154,8 @@ data FloatPrimOp
   | FStep
   | FSmoothStep
   | FFract
+  | FFma
+  | FUnpackUnorm4x8
   deriving stock Show
 
 data VecPrimOp
@@ -162,6 +167,13 @@ data VecPrimOp
   | ReflectV
   | RefractV
   | FaceForwardV
+  | LessThanV
+  | GreaterThanV
+  | EqualV
+  | NotEqualV
+  | LessThanEqualV
+  | GreaterThanEqualV
+  | PackUnorm4x8
   deriving stock Show
 
 data MatPrimOp
@@ -347,6 +359,20 @@ numericOp _  Rem  (Integer Unsigned w) = ( UMod   , Integer Unsigned w ) -- URem
 numericOp _  Quot (Integer Signed   w) = ( SDiv   , Integer Signed   w )
 numericOp _  Quot (Integer Unsigned w) = ( UDiv   , Integer Unsigned w )
 numericOp _  Quot (Floating         _) = error "internal error: Quot used with floating-point type"
+numericOp bk FindILsb (Integer s w)
+  | Vulkan <- bk = ( GLSL_FindILsb, Integer Signed W32 )
+  | otherwise    = error "todo: findILsb not implemented in OpenCL backend"
+numericOp _  FindILsb (Floating _) = error "internal error: findILsb called on floating-point type"
+numericOp bk FindSMsb (Integer Signed w)
+  | Vulkan <- bk = ( GLSL_FindSMsb, Integer Signed W32 )
+  | otherwise    = error "todo: findSMsb not implemented in OpenCL backend"
+numericOp _  FindSMsb (Integer Unsigned _) = error "internal error: findSMsb called on unsigned integer type"
+numericOp _  FindSMsb (Floating _) = error "internal error: findSMsb called on floating-point type"
+numericOp bk FindUMsb (Integer Unsigned w)
+  | Vulkan <- bk = ( GLSL_FindUMsb, Integer Signed W32 )
+  | otherwise    = error "todo: findUMsb not implemented in OpenCL backend"
+numericOp _  FindUMsb (Integer Signed _) = error "internal error: findUMsb called on signed integer type"
+numericOp _  FindUMsb (Floating _) = error "internal error: findUMsb called on floating-point type"
 
 floatingOp :: Backend -> FloatPrimOp -> ScalarTy -> (Operation, PrimTy)
 floatingOp bk FSin     s = ( backendOp bk GLSL_Sin     OpenCL_Sin     , Scalar s )
@@ -382,6 +408,10 @@ floatingOp bk FSmoothStep s
   | Vulkan <- bk = ( GLSL_SmoothStep, Scalar s )
   | otherwise    = error "todo: smoothstep not implemented in OpenCL backend"
 floatingOp bk FFract      s = ( backendOp bk GLSL_Fract OpenCL_Fract, Scalar s )
+floatingOp bk FFma        s = ( backendOp bk GLSL_Fma OpenCL_FMAdd, Scalar s )
+floatingOp bk FUnpackUnorm4x8 s
+  | Vulkan <- bk = ( GLSL_UnpackUnorm4x8, Vector 4 (Scalar (Floating W32)) )
+  | otherwise    = error "todo: unpackUnorm4x8 not implemented in OpenCL backend"
 
 vectorOp :: Backend -> VecPrimOp -> Word32 -> PrimTy -> (Operation, PrimTy)
 vectorOp bk (Vectorise prim) n ty = ( op bk prim, Vector n ty )
@@ -405,6 +435,22 @@ vectorOp bk FaceForwardV n (Scalar (Floating w))
   | Vulkan <- bk = ( GLSL_FaceForward, Vector n (Scalar (Floating w)) )
   | otherwise    = error "todo: faceforward not implemented in OpenCL backend"
 vectorOp _  FaceForwardV _ _ = error "internal error: faceforward: vector elements must be of floating-point type."
+vectorOp _ LessThanV n (Scalar (Floating w)) = ( FOrdLessThan, Vector n Boolean )
+vectorOp _ LessThanV _ _ = error "internal error: lessThan: vector elements must be of floating-point type."
+vectorOp _ GreaterThanV n (Scalar (Floating w)) = ( FOrdGreaterThan, Vector n Boolean )
+vectorOp _ GreaterThanV _ _ = error "internal error: greaterThan: vector elements must be of floating-point type."
+vectorOp _ EqualV n (Scalar (Floating w)) = ( FOrdEqual, Vector n Boolean )
+vectorOp _ EqualV _ _ = error "internal error: equal: vector elements must be of floating-point type."
+vectorOp _ NotEqualV n (Scalar (Floating w)) = ( FOrdNotEqual, Vector n Boolean )
+vectorOp _ NotEqualV _ _ = error "internal error: notEqual: vector elements must be of floating-point type."
+vectorOp _ LessThanEqualV n (Scalar (Floating w)) = ( FOrdLessThanEqual, Vector n Boolean )
+vectorOp _ LessThanEqualV _ _ = error "internal error: lessThanEqual: vector elements must be of floating-point type."
+vectorOp _ GreaterThanEqualV n (Scalar (Floating w)) = ( FOrdGreaterThanEqual, Vector n Boolean )
+vectorOp _ GreaterThanEqualV _ _ = error "internal error: greaterThanEqual: vector elements must be of floating-point type."
+vectorOp bk PackUnorm4x8 4 (Scalar (Floating W32))
+  | Vulkan <- bk = ( GLSL_PackUnorm4x8, Scalar (Integer Unsigned W32) )
+  | otherwise    = error "todo: packUnorm4x8 not implemented in OpenCL backend"
+vectorOp _ PackUnorm4x8 _ _ = error "internal error: packUnorm4x8: must be vec4 of float32"
 
 matrixOp :: Backend -> MatPrimOp -> Word32 -> Word32 -> ScalarTy -> (Operation, PrimTy)
 matrixOp _  MMulK  n m s = ( MatrixTimesScalar, Matrix n m s )

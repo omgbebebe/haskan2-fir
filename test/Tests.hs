@@ -87,6 +87,10 @@ allTests
            , ( "VectorTrig"     , Validate )
            , ( "VectorGeom"     , Validate )
            , ( "VectorSigned"   , Validate )
+           , ( "VectorCompare"  , Validate )
+           , ( "VectorFma"      , Validate )
+           , ( "PackUnpack"     , Validate )
+           , ( "BitFind"        , Validate )
            , ( "MatrixOps"      , CodeGen )
            ]
     , Folder "Matrix"

@@ -861,3 +861,50 @@ instance ( KnownNat i, ScalarTy a, Floating a ) => PrimOp SPIRV.Inv '(a,i) where
 instance ( KnownNat i, KnownNat j, ScalarTy a, Floating a ) => PrimOp SPIRV.Out '(a,i,j) where
   type PrimOpAugType SPIRV.Out '(a,i,j) = Val (V i a) :--> Val (V j a) :--> Val (M i j a)
   opName = SPIRV.MatOp SPIRV.Out (val @i) (val @j) (scalarTy @a)
+
+-- Vector comparisons
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.LessThanV (V n a) where
+  type PrimOpAugType SPIRV.LessThanV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n Bool)
+  opName = SPIRV.VecOp SPIRV.LessThanV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.GreaterThanV (V n a) where
+  type PrimOpAugType SPIRV.GreaterThanV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n Bool)
+  opName = SPIRV.VecOp SPIRV.GreaterThanV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.EqualV (V n a) where
+  type PrimOpAugType SPIRV.EqualV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n Bool)
+  opName = SPIRV.VecOp SPIRV.EqualV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.NotEqualV (V n a) where
+  type PrimOpAugType SPIRV.NotEqualV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n Bool)
+  opName = SPIRV.VecOp SPIRV.NotEqualV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.LessThanEqualV (V n a) where
+  type PrimOpAugType SPIRV.LessThanEqualV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n Bool)
+  opName = SPIRV.VecOp SPIRV.LessThanEqualV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.GreaterThanEqualV (V n a) where
+  type PrimOpAugType SPIRV.GreaterThanEqualV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n Bool)
+  opName = SPIRV.VecOp SPIRV.GreaterThanEqualV (val @n) (primTy @a)
+
+-- FMA
+instance ( ScalarTy a, Floating a ) => PrimOp SPIRV.FFma (a :: Type) where
+  type PrimOpAugType SPIRV.FFma a = Val a :--> Val a :--> Val a :--> Val a
+  opName = SPIRV.FloatOp SPIRV.FFma (scalarTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp ('Vectorise SPIRV.FFma) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.FFma) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FFma @a)) (val @n) (primTy @a)
+
+-- Pack/Unpack
+instance PrimOp SPIRV.PackUnorm4x8 (V 4 Float) where
+  type PrimOpAugType SPIRV.PackUnorm4x8 (V 4 Float) = Val (V 4 Float) :--> Val Word32
+  opName = SPIRV.VecOp SPIRV.PackUnorm4x8 4 (primTy @Float)
+instance PrimOp SPIRV.FUnpackUnorm4x8 Word32 where
+  type PrimOpAugType SPIRV.FUnpackUnorm4x8 Word32 = Val Word32 :--> Val (V 4 Float)
+  opName = SPIRV.FloatOp SPIRV.FUnpackUnorm4x8 (scalarTy @Word32)
+
+-- Find LSB/MSB
+instance ( ScalarTy a, Bits a ) => PrimOp SPIRV.FindILsb (a :: Type) where
+  type PrimOpAugType SPIRV.FindILsb a = Val a :--> Val Int32
+  opName = SPIRV.NumOp SPIRV.FindILsb (scalarTy @a)
+instance ( ScalarTy a, Bits a ) => PrimOp SPIRV.FindSMsb (a :: Type) where
+  type PrimOpAugType SPIRV.FindSMsb a = Val a :--> Val Int32
+  opName = SPIRV.NumOp SPIRV.FindSMsb (scalarTy @a)
+instance ( ScalarTy a, Bits a ) => PrimOp SPIRV.FindUMsb (a :: Type) where
+  type PrimOpAugType SPIRV.FindUMsb a = Val a :--> Val Int32
+  opName = SPIRV.NumOp SPIRV.FindUMsb (scalarTy @a)

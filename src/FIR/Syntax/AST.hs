@@ -45,6 +45,10 @@ module FIR.Syntax.AST
   , (^*^), minV, maxV, clampV, mixV, stepV, smoothstepV, fractV
   , sinV, cosV, tanV, sqrtV, invSqrtV, powV, expV, logV
   , absV, signV
+  , lessThanV, greaterThanV, equalV, notEqualV, lessThanEqualV, greaterThanEqualV
+  , fma, fmaV
+  , packUnorm4x8, unpackUnorm4x8
+  , findILsb, findSMsb, findUMsb
   , reflectV, refractV, faceForwardV
 
     -- matrix operations
@@ -1259,6 +1263,71 @@ refractV = primOp @(V n a) @SPIRV.RefractV
 faceForwardV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
              => Code (V n a) -> Code (V n a) -> Code (V n a) -> Code (V n a)
 faceForwardV = primOp @(V n a) @SPIRV.FaceForwardV
+
+-- | Component-wise vector less-than comparison.
+lessThanV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+          => Code (V n a) -> Code (V n a) -> Code (V n Bool)
+lessThanV = primOp @(V n a) @SPIRV.LessThanV
+
+-- | Component-wise vector greater-than comparison.
+greaterThanV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+             => Code (V n a) -> Code (V n a) -> Code (V n Bool)
+greaterThanV = primOp @(V n a) @SPIRV.GreaterThanV
+
+-- | Component-wise vector equality comparison.
+equalV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+       => Code (V n a) -> Code (V n a) -> Code (V n Bool)
+equalV = primOp @(V n a) @SPIRV.EqualV
+
+-- | Component-wise vector inequality comparison.
+notEqualV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+          => Code (V n a) -> Code (V n a) -> Code (V n Bool)
+notEqualV = primOp @(V n a) @SPIRV.NotEqualV
+
+-- | Component-wise vector less-than-or-equal comparison.
+lessThanEqualV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+               => Code (V n a) -> Code (V n a) -> Code (V n Bool)
+lessThanEqualV = primOp @(V n a) @SPIRV.LessThanEqualV
+
+-- | Component-wise vector greater-than-or-equal comparison.
+greaterThanEqualV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+                  => Code (V n a) -> Code (V n a) -> Code (V n Bool)
+greaterThanEqualV = primOp @(V n a) @SPIRV.GreaterThanEqualV
+
+-- | Scalar fused multiply-add.
+fma :: forall a. (ScalarTy a, Floating a)
+    => Code a -> Code a -> Code a -> Code a
+fma = primOp @a @SPIRV.FFma
+
+-- | Component-wise vector fused multiply-add.
+fmaV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+     => Code (V n a) -> Code (V n a) -> Code (V n a) -> Code (V n a)
+fmaV = primOp @(V n a) @('Vectorise SPIRV.FFma)
+
+-- | Pack a vec4 of floats into a single 32-bit unsigned integer
+-- with 8-bit normalized unsigned components.
+packUnorm4x8 :: Code (V 4 Float) -> Code Word32
+packUnorm4x8 = primOp @(V 4 Float) @SPIRV.PackUnorm4x8
+
+-- | Unpack a 32-bit unsigned integer into a vec4 of floats
+-- with 8-bit normalized unsigned components.
+unpackUnorm4x8 :: Code Word32 -> Code (V 4 Float)
+unpackUnorm4x8 = primOp @Word32 @SPIRV.FUnpackUnorm4x8
+
+-- | Find the index of the least significant one bit.
+findILsb :: forall a. (ScalarTy a, Bits a)
+         => Code a -> Code Int32
+findILsb = primOp @a @SPIRV.FindILsb
+
+-- | Find the index of the most significant one bit in a signed integer.
+findSMsb :: forall a. (ScalarTy a, Bits a)
+         => Code a -> Code Int32
+findSMsb = primOp @a @SPIRV.FindSMsb
+
+-- | Find the index of the most significant one bit in an unsigned integer.
+findUMsb :: forall a. (ScalarTy a, Bits a)
+         => Code a -> Code Int32
+findUMsb = primOp @a @SPIRV.FindUMsb
 
 instance (ScalarTy a, Floating a) => Inner Nat (Code (V 0 a)) where
   (^.^) :: forall n. KnownNat n

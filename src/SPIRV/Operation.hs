@@ -702,6 +702,40 @@ pattern GLSL_Step          :: Operation
 pattern GLSL_Step          = ExtCode GLSL 48
 pattern GLSL_SmoothStep    :: Operation
 pattern GLSL_SmoothStep    = ExtCode GLSL 49
+pattern GLSL_Fma           :: Operation
+pattern GLSL_Fma           = ExtCode GLSL 50
+pattern GLSL_PackSnorm4x8  :: Operation
+pattern GLSL_PackSnorm4x8  = ExtCode GLSL 54
+pattern GLSL_PackUnorm4x8  :: Operation
+pattern GLSL_PackUnorm4x8  = ExtCode GLSL 55
+pattern GLSL_PackSnorm2x16 :: Operation
+pattern GLSL_PackSnorm2x16 = ExtCode GLSL 56
+pattern GLSL_PackUnorm2x16 :: Operation
+pattern GLSL_PackUnorm2x16 = ExtCode GLSL 57
+pattern GLSL_PackHalf2x16  :: Operation
+pattern GLSL_PackHalf2x16  = ExtCode GLSL 58
+pattern GLSL_UnpackSnorm2x16 :: Operation
+pattern GLSL_UnpackSnorm2x16 = ExtCode GLSL 60
+pattern GLSL_UnpackUnorm2x16 :: Operation
+pattern GLSL_UnpackUnorm2x16 = ExtCode GLSL 61
+pattern GLSL_UnpackHalf2x16  :: Operation
+pattern GLSL_UnpackHalf2x16  = ExtCode GLSL 62
+pattern GLSL_UnpackSnorm4x8  :: Operation
+pattern GLSL_UnpackSnorm4x8  = ExtCode GLSL 63
+pattern GLSL_UnpackUnorm4x8  :: Operation
+pattern GLSL_UnpackUnorm4x8  = ExtCode GLSL 64
+pattern GLSL_FindILsb        :: Operation
+pattern GLSL_FindILsb        = ExtCode GLSL 73
+pattern GLSL_FindSMsb        :: Operation
+pattern GLSL_FindSMsb        = ExtCode GLSL 74
+pattern GLSL_FindUMsb        :: Operation
+pattern GLSL_FindUMsb        = ExtCode GLSL 75
+pattern GLSL_InterpolateAtCentroid :: Operation
+pattern GLSL_InterpolateAtCentroid = ExtCode GLSL 76
+pattern GLSL_InterpolateAtSample   :: Operation
+pattern GLSL_InterpolateAtSample   = ExtCode GLSL 77
+pattern GLSL_InterpolateAtOffset   :: Operation
+pattern GLSL_InterpolateAtOffset   = ExtCode GLSL 78
 -- OpenCL extended instructions
   -- floating point instructions
 pattern OpenCL_Acos :: Operation
@@ -1146,6 +1180,23 @@ showOperation GLSL_Clamp = "Clamp"
 showOperation GLSL_Mix = "Mix"
 showOperation GLSL_Step = "Step"
 showOperation GLSL_SmoothStep = "SmoothStep"
+showOperation GLSL_Fma = "Fma"
+showOperation GLSL_PackSnorm4x8 = "PackSnorm4x8"
+showOperation GLSL_PackUnorm4x8 = "PackUnorm4x8"
+showOperation GLSL_PackSnorm2x16 = "PackSnorm2x16"
+showOperation GLSL_PackUnorm2x16 = "PackUnorm2x16"
+showOperation GLSL_PackHalf2x16 = "PackHalf2x16"
+showOperation GLSL_UnpackSnorm2x16 = "UnpackSnorm2x16"
+showOperation GLSL_UnpackUnorm2x16 = "UnpackUnorm2x16"
+showOperation GLSL_UnpackHalf2x16 = "UnpackHalf2x16"
+showOperation GLSL_UnpackSnorm4x8 = "UnpackSnorm4x8"
+showOperation GLSL_UnpackUnorm4x8 = "UnpackUnorm4x8"
+showOperation GLSL_FindILsb = "FindILsb"
+showOperation GLSL_FindSMsb = "FindSMsb"
+showOperation GLSL_FindUMsb = "FindUMsb"
+showOperation GLSL_InterpolateAtCentroid = "InterpolateAtCentroid"
+showOperation GLSL_InterpolateAtSample = "InterpolateAtSample"
+showOperation GLSL_InterpolateAtOffset = "InterpolateAtOffset"
 -- OpenCL instructions
 showOperation OpenCL_Acos      = "Acos"
 showOperation OpenCL_Acosh     = "Acosh"

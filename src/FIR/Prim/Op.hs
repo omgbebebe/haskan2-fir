@@ -791,6 +791,15 @@ instance ( KnownNat n, ScalarTy a, GLSLMath a ) => PrimOp ('Vectorise SPIRV.FSmo
   op = liftA3 smoothstep
   opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.FSmoothStep @a)) (val @n) (primTy @a)
 
+instance ( KnownNat n, ScalarTy a, Ord a, Logic a ~ Bool ) => PrimOp ('Vectorise SPIRV.Min) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.Min) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = liftA2 min
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.Min @a)) (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Ord a, Logic a ~ Bool ) => PrimOp ('Vectorise SPIRV.Max) (V n a) where
+  type PrimOpAugType ('Vectorise SPIRV.Max) (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = liftA2 max
+  opName = SPIRV.VecOp (SPIRV.Vectorise (opName @_ @_ @SPIRV.Max @a)) (val @n) (primTy @a)
+
 instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.DotV (V n a) where
   type PrimOpAugType SPIRV.DotV (V n a) = Val (V n a) :--> Val (V n a) :--> Val a
   op = dot

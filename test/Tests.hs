@@ -81,8 +81,9 @@ allTests
           [ ( "NestedUniform", Validate )
           ]
     , Folder "Math"
-           [ ( "Smoke"         , Validate )
+           [ ( "Smoke"          , Validate )
            , ( "ComponentWiseMul", Validate )
+           , ( "VectorOps"      , Validate )
            ]
     , Folder "Matrix"
            [ ( "Applicative", Validate )

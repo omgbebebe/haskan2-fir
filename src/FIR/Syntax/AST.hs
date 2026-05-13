@@ -42,7 +42,7 @@ module FIR.Syntax.AST
   , ASTApplicative(..), fmapAST, (<$$>)
 
     -- vector operations
-  , (^*^)
+  , (^*^), minV, maxV, clampV, mixV, stepV, smoothstepV, fractV
 
     -- + orphan instances
   )
@@ -1153,6 +1153,41 @@ infixl 7 ^*^
 (^*^) :: forall n a. (KnownNat n, ScalarTy a, Semiring a)
       => Code (V n a) -> Code (V n a) -> Code (V n a)
 (^*^) = primOp @(V n a) @('Vectorise SPIRV.Mul)
+
+-- | Component-wise vector minimum.
+minV :: forall n a. (KnownNat n, ScalarTy a, Ord a, Logic a ~ Bool)
+     => Code (V n a) -> Code (V n a) -> Code (V n a)
+minV = primOp @(V n a) @('Vectorise SPIRV.Min)
+
+-- | Component-wise vector maximum.
+maxV :: forall n a. (KnownNat n, ScalarTy a, Ord a, Logic a ~ Bool)
+     => Code (V n a) -> Code (V n a) -> Code (V n a)
+maxV = primOp @(V n a) @('Vectorise SPIRV.Max)
+
+-- | Component-wise vector clamp.
+clampV :: forall n a. (KnownNat n, ScalarTy a, GLSLMath a)
+       => Code (V n a) -> Code (V n a) -> Code (V n a) -> Code (V n a)
+clampV = primOp @(V n a) @('Vectorise SPIRV.FClamp)
+
+-- | Component-wise vector linear interpolation.
+mixV :: forall n a. (KnownNat n, ScalarTy a, GLSLMath a)
+     => Code (V n a) -> Code (V n a) -> Code (V n a) -> Code (V n a)
+mixV = primOp @(V n a) @('Vectorise SPIRV.FMix)
+
+-- | Component-wise vector step.
+stepV :: forall n a. (KnownNat n, ScalarTy a, GLSLMath a)
+      => Code (V n a) -> Code (V n a) -> Code (V n a)
+stepV = primOp @(V n a) @('Vectorise SPIRV.FStep)
+
+-- | Component-wise vector smoothstep.
+smoothstepV :: forall n a. (KnownNat n, ScalarTy a, GLSLMath a)
+            => Code (V n a) -> Code (V n a) -> Code (V n a) -> Code (V n a)
+smoothstepV = primOp @(V n a) @('Vectorise SPIRV.FSmoothStep)
+
+-- | Component-wise vector fractional part.
+fractV :: forall n a. (KnownNat n, ScalarTy a, GLSLMath a)
+       => Code (V n a) -> Code (V n a)
+fractV = primOp @(V n a) @('Vectorise SPIRV.FFract)
 
 instance (ScalarTy a, Floating a) => Inner Nat (Code (V 0 a)) where
   (^.^) :: forall n. KnownNat n

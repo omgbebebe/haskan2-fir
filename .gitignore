@@ -3,4 +3,6 @@
 *.hi-boot
 *.o-boot
 dist-newstyle/
-test/
+test/**/*.fail
+test/**/*.golden
+test/**/*.spv

@@ -41,6 +41,9 @@ module FIR.Syntax.AST
     -- functor/applicative for AST values
   , ASTApplicative(..), fmapAST, (<$$>)
 
+    -- vector operations
+  , (^*^)
+
     -- + orphan instances
   )
   where
@@ -1144,6 +1147,12 @@ instance (ScalarTy a, Ring a) => LinearModule Nat (Code (V 0 a)) where
 
   (-^) :: forall n. KnownNat n => Code (V n a) -> Code (V n a)
   (-^) = primOp @(V n a) @('Vectorise SPIRV.Neg)
+
+-- | Component-wise vector multiplication (Hadamard product).
+infixl 7 ^*^
+(^*^) :: forall n a. (KnownNat n, ScalarTy a, Semiring a)
+      => Code (V n a) -> Code (V n a) -> Code (V n a)
+(^*^) = primOp @(V n a) @('Vectorise SPIRV.Mul)
 
 instance (ScalarTy a, Floating a) => Inner Nat (Code (V 0 a)) where
   (^.^) :: forall n. KnownNat n

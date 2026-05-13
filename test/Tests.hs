@@ -80,9 +80,13 @@ allTests
     , Folder "Layout"
           [ ( "NestedUniform", Validate )
           ]
+    , Folder "Math"
+           [ ( "Smoke"         , Validate )
+           , ( "ComponentWiseMul", Validate )
+           ]
     , Folder "Matrix"
-          [ ( "Applicative", Validate )
-          ]
+           [ ( "Applicative", Validate )
+           ]
     , Folder "Module"
           [ ( "DiffStageDiffName", Validate  )
           , ( "DiffStageSameName", Validate  )

@@ -44,6 +44,7 @@ module FIR.Syntax.AST
     -- vector operations
   , (^*^), minV, maxV, clampV, mixV, stepV, smoothstepV, fractV
   , sinV, cosV, tanV, sqrtV, invSqrtV, powV, expV, logV
+  , reflectV, refractV, faceForwardV
 
     -- + orphan instances
   )
@@ -1229,6 +1230,21 @@ expV = primOp @(V n a) @('Vectorise SPIRV.FExp)
 logV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
      => Code (V n a) -> Code (V n a)
 logV = primOp @(V n a) @('Vectorise SPIRV.FLog)
+
+-- | Vector reflection.
+reflectV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+         => Code (V n a) -> Code (V n a) -> Code (V n a)
+reflectV = primOp @(V n a) @SPIRV.ReflectV
+
+-- | Vector refraction.
+refractV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+         => Code (V n a) -> Code (V n a) -> Code a -> Code (V n a)
+refractV = primOp @(V n a) @SPIRV.RefractV
+
+-- | Vector faceforward.
+faceForwardV :: forall n a. (KnownNat n, ScalarTy a, Floating a)
+             => Code (V n a) -> Code (V n a) -> Code (V n a) -> Code (V n a)
+faceForwardV = primOp @(V n a) @SPIRV.FaceForwardV
 
 instance (ScalarTy a, Floating a) => Inner Nat (Code (V 0 a)) where
   (^.^) :: forall n. KnownNat n

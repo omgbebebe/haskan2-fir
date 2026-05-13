@@ -688,6 +688,12 @@ pattern GLSL_Cross         :: Operation
 pattern GLSL_Cross         = ExtCode GLSL 68
 pattern GLSL_Normalize     :: Operation
 pattern GLSL_Normalize     = ExtCode GLSL 69
+pattern GLSL_FaceForward   :: Operation
+pattern GLSL_FaceForward   = ExtCode GLSL 70
+pattern GLSL_Reflect       :: Operation
+pattern GLSL_Reflect       = ExtCode GLSL 71
+pattern GLSL_Refract       :: Operation
+pattern GLSL_Refract       = ExtCode GLSL 72
 pattern GLSL_Clamp         :: Operation
 pattern GLSL_Clamp         = ExtCode GLSL 43
 pattern GLSL_Mix           :: Operation
@@ -1133,6 +1139,9 @@ showOperation GLSL_UMax = "UMax"
 showOperation GLSL_SMax = "SMax"
 showOperation GLSL_Cross = "Cross"
 showOperation GLSL_Normalize = "Normalize"
+showOperation GLSL_FaceForward = "FaceForward"
+showOperation GLSL_Reflect = "Reflect"
+showOperation GLSL_Refract = "Refract"
 showOperation GLSL_Clamp = "Clamp"
 showOperation GLSL_Mix = "Mix"
 showOperation GLSL_Step = "Step"

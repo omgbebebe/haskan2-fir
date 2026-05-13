@@ -159,6 +159,9 @@ data VecPrimOp
   | VMulK
   | CrossV
   | NormaliseV
+  | ReflectV
+  | RefractV
+  | FaceForwardV
   deriving stock Show
 
 data MatPrimOp
@@ -390,6 +393,18 @@ vectorOp bk CrossV     n (Scalar (Floating w)) = ( backendOp bk GLSL_Cross OpenC
 vectorOp _  CrossV     _ _                     = error "internal error: cross product: vector elements must be of floating-point type."
 vectorOp bk NormaliseV n (Scalar (Floating w)) = ( backendOp bk GLSL_Normalize OpenCL_Normalize, Vector n (Scalar (Floating w)) )
 vectorOp _  NormaliseV _ _                     = error "internal error: normalise: vector elements must be of floating-point type."
+vectorOp bk ReflectV   n (Scalar (Floating w))
+  | Vulkan <- bk = ( GLSL_Reflect, Vector n (Scalar (Floating w)) )
+  | otherwise    = error "todo: reflect not implemented in OpenCL backend"
+vectorOp _  ReflectV   _ _ = error "internal error: reflect: vector elements must be of floating-point type."
+vectorOp bk RefractV   n (Scalar (Floating w))
+  | Vulkan <- bk = ( GLSL_Refract, Vector n (Scalar (Floating w)) )
+  | otherwise    = error "todo: refract not implemented in OpenCL backend"
+vectorOp _  RefractV   _ _ = error "internal error: refract: vector elements must be of floating-point type."
+vectorOp bk FaceForwardV n (Scalar (Floating w))
+  | Vulkan <- bk = ( GLSL_FaceForward, Vector n (Scalar (Floating w)) )
+  | otherwise    = error "todo: faceforward not implemented in OpenCL backend"
+vectorOp _  FaceForwardV _ _ = error "internal error: faceforward: vector elements must be of floating-point type."
 
 matrixOp :: Backend -> MatPrimOp -> Word32 -> Word32 -> ScalarTy -> (Operation, PrimTy)
 matrixOp _  MMulK  n m s = ( MatrixTimesScalar, Matrix n m s )

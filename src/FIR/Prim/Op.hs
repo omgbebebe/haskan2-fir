@@ -60,6 +60,7 @@ import Math.Linear
   ( V, M
   , Semimodule((^*)), Inner(dot, normalise), Cross(cross)
   , Matrix(..)
+  , reflect
   )
 import Math.Logic.Bits
   ( Bits(..), BitShift(..), BitCast(..) )
@@ -818,6 +819,16 @@ instance ( KnownNat n, ScalarTy a, Floating a) => PrimOp SPIRV.NormaliseV (V n a
   op = normalise
   opName = SPIRV.VecOp SPIRV.NormaliseV (val @n) (primTy @a)
 
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.ReflectV (V n a) where
+  type PrimOpAugType SPIRV.ReflectV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  op = reflect
+  opName = SPIRV.VecOp SPIRV.ReflectV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.RefractV (V n a) where
+  type PrimOpAugType SPIRV.RefractV (V n a) = Val (V n a) :--> Val (V n a) :--> Val a :--> Val (V n a)
+  opName = SPIRV.VecOp SPIRV.RefractV (val @n) (primTy @a)
+instance ( KnownNat n, ScalarTy a, Floating a ) => PrimOp SPIRV.FaceForwardV (V n a) where
+  type PrimOpAugType SPIRV.FaceForwardV (V n a) = Val (V n a) :--> Val (V n a) :--> Val (V n a) :--> Val (V n a)
+  opName = SPIRV.VecOp SPIRV.FaceForwardV (val @n) (primTy @a)
 
 instance ( KnownNat i, KnownNat j, ScalarTy a, Floating a ) => PrimOp SPIRV.MMulK '(a,i,j) where
   type PrimOpAugType SPIRV.MMulK '(a,i,j) = Val (M i j a) :--> Val a :--> Val (M i j a)

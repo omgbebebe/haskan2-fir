@@ -85,6 +85,7 @@ allTests
            , ( "ComponentWiseMul", Validate )
            , ( "VectorOps"      , Validate )
            , ( "VectorTrig"     , Validate )
+           , ( "VectorGeom"     , Validate )
            ]
     , Folder "Matrix"
            [ ( "Applicative", Validate )

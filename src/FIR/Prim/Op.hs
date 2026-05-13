@@ -858,3 +858,6 @@ instance ( KnownNat i, ScalarTy a, Floating a ) => PrimOp SPIRV.Inv '(a,i) where
   type PrimOpAugType SPIRV.Inv '(a,i) = Val (M i i a) :--> Val (M i i a)
   op = inverse
   opName = SPIRV.MatOp SPIRV.Inv (val @i) (val @i) (scalarTy @a)
+instance ( KnownNat i, KnownNat j, ScalarTy a, Floating a ) => PrimOp SPIRV.Out '(a,i,j) where
+  type PrimOpAugType SPIRV.Out '(a,i,j) = Val (V i a) :--> Val (V j a) :--> Val (M i j a)
+  opName = SPIRV.MatOp SPIRV.Out (val @i) (val @j) (scalarTy @a)

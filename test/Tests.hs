@@ -86,6 +86,7 @@ allTests
            , ( "VectorOps"      , Validate )
            , ( "VectorTrig"     , Validate )
            , ( "VectorGeom"     , Validate )
+           , ( "MatrixOps"      , CodeGen )
            ]
     , Folder "Matrix"
            [ ( "Applicative", Validate )

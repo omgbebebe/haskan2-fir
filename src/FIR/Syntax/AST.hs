@@ -46,6 +46,9 @@ module FIR.Syntax.AST
   , sinV, cosV, tanV, sqrtV, invSqrtV, powV, expV, logV
   , reflectV, refractV, faceForwardV
 
+    -- matrix operations
+  , outerProduct, matrixCompMult
+
     -- + orphan instances
   )
   where
@@ -1322,6 +1325,18 @@ instance (ScalarTy a, Floating a) => Matrix Nat (Code (M 0 0 a)) where
   (!*) :: forall i j. (KnownNat i, KnownNat j)
        => Code (M i j a) -> Code a -> Code (M i j a)
   (!*) = primOp @'(a,i,j) @SPIRV.MMulK
+
+-- | Outer product of two vectors.
+outerProduct :: forall i j a. (KnownNat i, KnownNat j, ScalarTy a, Floating a)
+             => Code (V i a) -> Code (V j a) -> Code (M i j a)
+outerProduct = primOp @'(a,i,j) @SPIRV.Out
+
+-- | Component-wise matrix multiplication (Hadamard product for matrices).
+matrixCompMult :: forall i j a. (KnownNat i, KnownNat j, ScalarTy a, Semiring a)
+               => Code (M i j a) -> Code (M i j a) -> Code (M i j a)
+matrixCompMult x y = Mat :$ ( vecMul <$$> (UnMat :$ x) <**> (UnMat :$ y) )
+  where vecMul :: Code (V i a) -> Code (V i a) -> Code (V i a)
+        vecMul = primOp @(V i a) @('Vectorise SPIRV.Mul)
 
 instance GradedSemigroup (Code (V 0 a)) Nat where
   type Grade Nat (Code (V 0 a)) n = Code (V n a)

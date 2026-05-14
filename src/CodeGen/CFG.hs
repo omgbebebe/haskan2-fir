@@ -109,6 +109,7 @@ import CodeGen.State
   , _currentBlock, _loopBlockIDs, _earlyExit, _earlyExits
   , _localBindings, _localBinding
   , _spirvVersion, _rayQueries, _emittedInstructions
+  , _astMemo
   )
 import Data.Containers.Traversals
   ( traverseWithKey_ )
@@ -403,22 +404,25 @@ while mbCond loopBody = do
                         =<< use _currentBlock
   headerBlockID      <- fresh
   loopBlockID        <- fresh
-  mergeBlockID       <- fresh -- block where control flow merges back
-  continueBlockID    <- fresh -- block at the end of the loop body from which we can continue for further loops
+  mergeBlockID       <- fresh
+  continueBlockID    <- fresh
   branch headerBlockID
 
-  -- Need to perform code generation for the loop block first,
-  -- as we need to know which ϕ-instructions to put in the header.
-  -- However, the loop block needs to appear after the header block in the CFG.
   ctxt  <- ask
   state <- get
   let
     bindingsBefore :: Map ShortText (ID, SPIRV.PrimTy)
     bindingsBefore = localBindings state
 
-    -- Perform code-generation for the loop block.
-    --
-    -- Factored out because we do this code-generation twice.
+  phiResultBindings <- Map.traverseWithKey
+    (\_ (_id, ty) -> (,ty) <$> fresh)
+    bindingsBefore
+
+  -- Capture state AFTER block IDs and phi IDs are allocated,
+  -- so codeGenLoop's ID allocations start after our pre-allocated IDs.
+  stateAfterAlloc <- get
+
+  let
     codeGenLoop :: CGMonad ( Map ID ( ContinueOrMergeID, Map ShortText (ID, SPIRV.PrimTy) ) )
     codeGenLoop = do
       early <- use _earlyExit
@@ -435,11 +439,6 @@ while mbCond loopBody = do
       branch continueBlockID
       block  continueBlockID
       let
-        -- Gather up all the blocks that immediately precede the continue block
-        -- in the control-flow graph.
-        -- These will be
-        --   - the block at the end of the loop body,
-        --   - the early-exit continue statements that go to this continue block.
         predContinueBlockIDs, earlyContinueBlockIDs :: [ ID ]
         predContinueBlockIDs = loopEndBlockID : earlyContinueBlockIDs
         predContinueBindings, earlyContinueBindings :: [ Map ShortText ( ID, SPIRV.PrimTy ) ]
@@ -453,14 +452,12 @@ while mbCond loopBody = do
                 -> Just earlyExitBds
               _ -> Nothing
           $ loopEarlyExits
-      -- If there are early-exit continue blocks, we need ϕ-instructions.
       unless ( null earlyContinueBlockIDs ) do
         phiMergeLocalBindings <-
           phiInstructions
             ( const True )
             predContinueBlockIDs
             predContinueBindings
-        -- update local bindings to refer to the ϕ-instructions
         traverseWithKey_
           ( \ bdName bdID -> modifying ( _localBinding bdName ) ( fmap $ first (const bdID) ) )
           phiMergeLocalBindings
@@ -469,49 +466,54 @@ while mbCond loopBody = do
 
       return loopEarlyExits
 
-    dryRunLoopGenOutput :: Either ShortText (_earlyExits, CGState, ByteString)
-    dryRunLoopGenOutput = runCGMonad ctxt state codeGenLoop
+  let singlePassState = stateAfterAlloc { localBindings = phiResultBindings }
+      singlePassGenOutput = runCGMonad ctxt singlePassState codeGenLoop
 
-  dryRunLoopEndState
-    <- case dryRunLoopGenOutput of
+  ( finalEarlyExits, singlePassEndState, _ )
+    <- case singlePassGenOutput of
           Left  err     -> throwError err
-          Right (_,s,_) -> pure s
+          Right result  -> pure result
+
   let
     loopEndBindings :: Map ShortText (ID, SPIRV.PrimTy)
-    loopEndBindings = localBindings dryRunLoopEndState
+    loopEndBindings = localBindings singlePassEndState
 
-  -- Extract dry run body (instructions after the original prefix).
-  -- The dry run body will be appended after the header to ensure
-  -- correct block ordering (header before body).
-  let dryRunBody :: Seq.Seq Instruction
-      dryRunBody = Seq.drop (Seq.length (emittedInstructions state))
-                             (emittedInstructions dryRunLoopEndState)
+    bodyInstructions :: Seq.Seq Instruction
+    bodyInstructions = Seq.drop (Seq.length (emittedInstructions singlePassState))
+                                (emittedInstructions singlePassEndState)
 
-  -- Update the state to be the state at the end of the loop
-  -- (e.g. don't forget about new constants that were defined),
-  -- but reset bindings to what they were before the loop block.
-  -- This is because all bindings within the loop remain local to it.
-  put dryRunLoopEndState
+  -- Restore the pre-loop memo table so that Code thunks forced during
+  -- the loop body don't leak IDs (defined in loop-body blocks) into the
+  -- merge block.  This prevents SSA dominance violations for nested loops.
+  preLoopMemo <- use _astMemo
+  put singlePassEndState
   assign _emittedInstructions (emittedInstructions state)
   assign _localBindings bindingsBefore
   assign _loopBlockIDs  beforeLoopBlockIDs
   assign _earlyExits    beforeEarlyExits
   assign _earlyExit     beforeEarlyExit
   assign _rayQueries    beforeRayQueries
+  assign _astMemo preLoopMemo
 
-  -- header block
   block headerBlockID
-  phiHeaderLocalBindings <-
-    phiInstructions
-      ( const True )
-      [ beforeBlockID , continueBlockID ]
-      [ bindingsBefore, loopEndBindings ] -- need loopEndBindings
 
-  -- update local bindings to refer to the ϕ-instructions
   traverseWithKey_
-    ( \ bdName bdID -> modifying ( _localBinding bdName ) ( fmap $ first (const bdID) ) )
-    phiHeaderLocalBindings
-  updatedLocalBindings <- use _localBindings
+    ( \ name (phiId, ty) ->
+        case ( Map.lookup name bindingsBefore, Map.lookup name loopEndBindings ) of
+          ( Just (beforeId, _), Just (afterId, _) ) -> do
+            tyID <- typeID ty
+            instruction Instruction
+              { operation = SPIRV.Op.Phi
+              , resTy     = Just tyID
+              , resID     = Just phiId
+              , args      = toArgs [ Pair (beforeId, beforeBlockID)
+                                   , Pair (afterId, continueBlockID) ]
+              }
+            assign ( _localBinding name ) ( Just (phiId, ty) )
+          _ -> pure ()
+    )
+    phiResultBindings
+
   headerEndState <-
     case mbCond of
       Just cond -> do
@@ -529,29 +531,12 @@ while mbCond loopBody = do
         branch loopBlockID
         get
 
-  -- writing the loop block proper
-  {- can't simply use code gen we already did,
-  because the bindings don't refer to the ϕ-instructions as they should
-  -- liftPut $ Binary.putLazyByteString loopBodyASM
-  -}
-  -- do code generation a second time for the loop body,
-  -- but this time with updated local bindings referring to the ϕ-instructions
-  put state
-  assign _localBindings updatedLocalBindings
-  finalEarlyExits <- codeGenLoop
   put $ headerEndState
-    { emittedInstructions = emittedInstructions headerEndState <> dryRunBody
-    } -- account for what happened in the loop header (e.g. IDs of ϕ-instructions)
-      -- and append the dry run body after the header for correct block ordering
+    { emittedInstructions = emittedInstructions headerEndState <> bodyInstructions
+    }
 
-  -- merge block (first block after the loop)
   block mergeBlockID
 
-  -- Gather up all the blocks that immediately precede the merge block in the CFG,
-  -- in order to emit the appropriate ϕ-instructions.
-  -- The relevant blocks are:
-  --   - the header block, for a while loop (i.e. with a conditional in the header);
-  --   - the early-exit break statements that go to this merge block.
   let
     headerEndBindings :: Map ShortText ( ID, SPIRV.PrimTy )
     headerEndBindings = localBindings headerEndState
@@ -580,12 +565,13 @@ while mbCond loopBody = do
           ( const True )
           predMergeBlockIDs
           predMergeBindings
-  -- update local bindings to refer to the ϕ-instructions
   traverseWithKey_
     ( \ bdName bdID -> modifying ( _localBinding bdName ) ( fmap $ first (const bdID) ) )
     phiBindings
 
-  pure (ID 0, SPIRV.Unit) -- ID should never be used
+  pure (ID 0, SPIRV.Unit)
+
+
 
 break :: Word32 -> CGMonad (ID, SPIRV.PrimTy)
 break 0 = pure (ID 0, SPIRV.Unit) -- ID should never be used

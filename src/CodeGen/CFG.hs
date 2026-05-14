@@ -58,7 +58,7 @@ import Data.Set
 import qualified Data.Set as Set
   ( fromList, member )
 import qualified Data.Sequence as Seq
-  ( Seq(..), drop, lookup )
+  ( Seq(..), drop, length, lookup )
 
 -- lens
 import Control.Lens
@@ -104,11 +104,11 @@ import CodeGen.Monad
 import CodeGen.Phi
   ( phiInstruction, phiInstructions )
 import CodeGen.State
-  ( CGState(localBindings)
+  ( CGState(localBindings, emittedInstructions)
   , ContinueOrMergeID(..), LoopBlockIDs(..)
   , _currentBlock, _loopBlockIDs, _earlyExit, _earlyExits
   , _localBindings, _localBinding
-  , _spirvVersion, _rayQueries
+  , _spirvVersion, _rayQueries, _emittedInstructions
   )
 import Data.Containers.Traversals
   ( traverseWithKey_ )
@@ -480,11 +480,19 @@ while mbCond loopBody = do
     loopEndBindings :: Map ShortText (ID, SPIRV.PrimTy)
     loopEndBindings = localBindings dryRunLoopEndState
 
+  -- Extract dry run body (instructions after the original prefix).
+  -- The dry run body will be appended after the header to ensure
+  -- correct block ordering (header before body).
+  let dryRunBody :: Seq.Seq Instruction
+      dryRunBody = Seq.drop (Seq.length (emittedInstructions state))
+                             (emittedInstructions dryRunLoopEndState)
+
   -- Update the state to be the state at the end of the loop
   -- (e.g. don't forget about new constants that were defined),
   -- but reset bindings to what they were before the loop block.
   -- This is because all bindings within the loop remain local to it.
   put dryRunLoopEndState
+  assign _emittedInstructions (emittedInstructions state)
   assign _localBindings bindingsBefore
   assign _loopBlockIDs  beforeLoopBlockIDs
   assign _earlyExits    beforeEarlyExits
@@ -508,7 +516,6 @@ while mbCond loopBody = do
     case mbCond of
       Just cond -> do
         (condID, condTy) <- locally (codeGen cond)
-        headerEndState <- get
         ( whenAsserting . when ( condTy /= SPIRV.Boolean ) )
           ( throwError
           $  "codeGen: ASSERT failed, while loop expected boolean conditional, but got "
@@ -516,12 +523,11 @@ while mbCond loopBody = do
           )
         loopMerge mergeBlockID continueBlockID SPIRV.NoLoopControl
         branchConditional condID loopBlockID mergeBlockID
-        pure headerEndState
+        get
       Nothing -> do
-        headerEndState <- get
         loopMerge mergeBlockID continueBlockID SPIRV.NoLoopControl
         branch loopBlockID
-        pure headerEndState
+        get
 
   -- writing the loop block proper
   {- can't simply use code gen we already did,
@@ -533,7 +539,10 @@ while mbCond loopBody = do
   put state
   assign _localBindings updatedLocalBindings
   finalEarlyExits <- codeGenLoop
-  put headerEndState -- account for what happened in the loop header (e.g. IDs of ϕ-instructions)
+  put $ headerEndState
+    { emittedInstructions = emittedInstructions headerEndState <> dryRunBody
+    } -- account for what happened in the loop header (e.g. IDs of ϕ-instructions)
+      -- and append the dry run body after the header for correct block ordering
 
   -- merge block (first block after the loop)
   block mergeBlockID

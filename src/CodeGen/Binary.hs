@@ -486,7 +486,7 @@ compactIDs state =
       topInsts   = take 20 (sortOn (negate . snd) (Map.toList instCounts))
       instSummary = unlines [ "  " ++ op ++ ": " ++ show n | (op, n) <- topInsts ]
   in trace ("compactIDs: oldBound=" ++ show oldBound ++ " newBound=" ++ show newBound ++ " usedIDs=" ++ show (Set.size allUsedIDs) ++ " emitted=" ++ show nEmitted ++ " types=" ++ show nTypes ++ " consts=" ++ show nConsts ++ "\nTop instructions:\n" ++ instSummary)
-     (rewriteCGState remap (state { currentID = ID newBound }))
+      ( (rewriteCGState remap state) { currentID = ID newBound } )
 
 collectAllIDs :: CGState -> Set Word32
 collectAllIDs state = execState (collectCGStateIDs state) Set.empty

@@ -132,15 +132,9 @@ library
 
     import:
         common
-      -- packages required for testing
-      -- (temporarily included here)
-      , test
 
     hs-source-dirs:
         src
-      -- modules required for testing
-      -- (temporarily included here)
-      , test
 
     exposed-modules:
         FIR
@@ -378,6 +372,8 @@ library
     build-depends:
         atomic-file-ops
           ^>= 0.3.0.0
+      , process
+          ^>= 1.6.3.0
       , binary
           >= 0.8.7.0  && < 0.11
       , containers
@@ -443,25 +439,22 @@ library
 test-suite fir-tests
 
     import: common, test
+    main-is: Main.hs
 
     type:
-      detailed-0.9
+      exitcode-stdio-1.0
 
     hs-source-dirs:
       test
 
-    test-module:
-      CabalTests
-
     other-modules:
-        Test
-      , Tests
-      , Folders
+        Runner
 
     build-depends:
-        fir
-      , Cabal
-          >= 3.0.0.0 && < 3.17
+        tasty >= 1.5
+      , tasty-golden >= 2.3
+      , tasty-hunit
+      , fir
 
     default-language:
         Haskell2010

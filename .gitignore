@@ -6,3 +6,6 @@ dist-newstyle/
 test/**/*.fail
 test/**/*.golden
 test/**/*.spv
+.ghc.environment.*
+cabal.project.local
+.opencode/

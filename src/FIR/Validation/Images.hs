@@ -114,9 +114,9 @@ type family ImagePropertiesFromLookup
                 :$$: Text "Available images: " :<>: ShowType (AllImageNames i)
                 )
   ImagePropertiesFromLookup k i (Just nonImage)
-    = TypeError (     Text "Unexpected type " :<>: ShowType nonImage
-                 :<>: Text " bound by name " :<>: ShowType k
-                 :$$: Text "Expected an image."
+    = TypeError (     Text "Name " :<>: ShowType k :<>: Text " exists but is not an image."
+                 :$$: Text "Found: " :<>: ShowType nonImage
+                 :$$: Text "Available images: " :<>: ShowType (AllImageNames i)
                  )
 
 -- | List all image names bound in a BindingsMap.

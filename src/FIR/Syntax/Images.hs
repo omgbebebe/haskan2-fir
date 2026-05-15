@@ -121,6 +121,7 @@ import FIR.Validation.Images
   , ImageTexelType
   , ValidQueryImageSize, ValidQueryImageSizeLOD
   , ValidQueryImageLOD, ValidQueryImageLevels, ValidQueryImageSamples
+  , CheckImageExists
   )
 
 -----------------------------------------------------------------------
@@ -177,6 +178,7 @@ instance {-# OVERLAPPING #-}
          .
          ( KnownSymbol k
          , LookupImageProperties k i ~ props
+         , CheckImageExists k i
          , Known ImageProperties props
          , ValidImageRead props ops imgCds
          , empty ~ '[]
@@ -203,6 +205,7 @@ instance {-# OVERLAPPING #-}
          .
          ( KnownSymbol k
          , LookupImageProperties k i ~ props
+         , CheckImageExists k i
          , Known ImageProperties props
          , ValidImageWrite props ops imgCds
          , empty ~ '[]

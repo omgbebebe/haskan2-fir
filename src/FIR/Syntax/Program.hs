@@ -238,6 +238,9 @@ import FIR.Validation.Definitions
 import FIR.Validation.Images
   ( LookupImageProperties, ImageTexelType
   , ValidImageRead, ValidImageWrite
+  , ValidQueryImageSize, ValidQueryImageSizeLOD
+  , ValidQueryImageLOD, ValidQueryImageLevels, ValidQueryImageSamples
+  , CheckImageExists
   )
 import Math.Algebra.Class
   ( AdditiveMonoid(..), CancellativeAdditiveMonoid(..), AdditiveGroup(..)
@@ -654,6 +657,7 @@ imageRead :: forall
                        ( ImageTexelType props '[] ) -- can't use "imgTexel", GHC trac #15710
                 )
             , props ~ LookupImageProperties imgName i
+            , CheckImageExists imgName i
             , Known ImageProperties props
             , ValidImageRead props '[] imgCds
             )
@@ -689,14 +693,15 @@ imageWrite :: forall
              , PrimTy imgCds
              , PrimTy imgTexel
              , imgTexel ~ ImageTexelType props '[]
-             , Gettable
-                ( ImageTexel imgName
-                  :: Optic
-                      '[ ImageOperands props '[], imgCds ]
-                       i
-                       ( ImageTexelType props '[] ) -- can't use "imgTexel", GHC trac #15710
-                )
+             , Settable
+                 ( ImageTexel imgName
+                   :: Optic
+                       '[ ImageOperands props '[], imgCds ]
+                        i
+                        ( ImageTexelType props '[] ) -- can't use "imgTexel", GHC trac #15710
+                 )
              , props ~ LookupImageProperties imgName i
+             , CheckImageExists imgName i
              , Known ImageProperties props
              , ValidImageWrite props '[] imgCds
              )
@@ -1254,6 +1259,10 @@ instance (ScalarTy a, Floating a, j ~ i) => Matrix Nat (Program i j (Code (M 0 0
 
 
 instance TypeError (     Text "Failable pattern detected in 'do' block, but only unfailable patterns are supported."
+                    :$$: Text ""
+                    :$$: Text "For vector unpacking, use:"
+                    :$$: Text "  result <- use @(ImageTexel \"name\") NilOps uv"
+                    :$$: Text "  let !(r, g, b, a) = unpackV4 result"
                     :$$: Text ""
                     :$$: Text "As inference of pattern failability is sometimes patchy,"
                     :$$: Text "consider using an irrefutable pattern instead, such as:"

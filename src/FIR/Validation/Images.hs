@@ -32,6 +32,7 @@ module FIR.Validation.Images
   , NoLODOps, SupportsDepthTest
   , ValidQueryImageSize, ValidQueryImageSizeLOD
   , ValidQueryImageLOD, ValidQueryImageLevels, ValidQueryImageSamples
+  , CheckImageExists
   )
   where
 
@@ -53,7 +54,6 @@ import GHC.TypeNats
 import Data.Type.List
   ( Elem )
 import Data.Type.Map
-  ( Lookup )
 import FIR.Binding
   ( Binding, BindingsMap, Var )
 import FIR.Prim.Array
@@ -110,14 +110,41 @@ type family ImagePropertiesFromLookup
   ImagePropertiesFromLookup _ _ (Just (Var _ (Image props))) = props
   ImagePropertiesFromLookup _ _ (Just (Var _ (RuntimeArray (Image props)))) = props
   ImagePropertiesFromLookup k i  Nothing
-    = TypeError (     Text "Expected an image, \
-                           \but nothing is bound by name " :<>: ShowType k
+    = TypeError (     Text "No image bound by name " :<>: ShowType k :<>: Text "."
+                :$$: Text "Available images: " :<>: ShowType (AllImageNames i)
                 )
   ImagePropertiesFromLookup k i (Just nonImage)
     = TypeError (     Text "Unexpected type " :<>: ShowType nonImage
                  :<>: Text " bound by name " :<>: ShowType k
                  :$$: Text "Expected an image."
                  )
+
+-- | List all image names bound in a BindingsMap.
+type family AllImageNames (i :: BindingsMap) :: [Symbol] where
+  AllImageNames '[] = '[]
+  AllImageNames ((k ':-> (Var _ (Image _))) ': rest)
+    = k ': AllImageNames rest
+  AllImageNames ((k ':-> (Var _ (RuntimeArray (Image _)))) ': rest)
+    = k ': AllImageNames rest
+  AllImageNames (_ ': rest) = AllImageNames rest
+
+-- | Early validation constraint: check that a name refers to an image
+-- before type unification gets stuck on the injective type family.
+type family CheckImageExists (k :: Symbol) (i :: ProgramState) :: Constraint where
+  CheckImageExists k ('ProgramState bindings _ _ _ _ _ _ _)
+    = CheckImageExistsInBindings k bindings (Lookup k bindings)
+
+type family CheckImageExistsInBindings (k :: Symbol) (i :: BindingsMap) (lookup :: Maybe Binding) :: Constraint where
+  CheckImageExistsInBindings _ _ (Just (Var _ (Image _))) = ()
+  CheckImageExistsInBindings _ _ (Just (Var _ (RuntimeArray (Image _)))) = ()
+  CheckImageExistsInBindings k i Nothing =
+    TypeError ( Text "Texture " :<>: ShowType k :<>: Text " not declared in shader definitions."
+              :$$: Text "Available images: " :<>: ShowType (AllImageNames i)
+              )
+  CheckImageExistsInBindings k _ (Just other) =
+    TypeError ( Text "Name " :<>: ShowType k :<>: Text " exists but is not an image."
+              :$$: Text "Found: " :<>: ShowType other
+              )
 
 type family ImageUsageFromProperties ( props :: ImageProperties ) :: ImageUsage where
   ImageUsageFromProperties ( Properties _ _ _ _ _ _ usage _ ) = usage

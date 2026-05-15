@@ -70,6 +70,7 @@ module FIR.Syntax.Synonyms
   -- * Pattern synonyms for vectors/matrices
   -- ** Patterns for vectors
   , pattern Vec2, pattern Vec3, pattern Vec4
+  , unpackV2, unpackV3, unpackV4
 
   -- ** Patterns for matrices
   , pattern Mat22, pattern Mat23, pattern Mat24
@@ -117,12 +118,15 @@ import Control.Type.Optic
   )
 import Data.Type.Known
   ( Known )
+import Data.Type.List
+  ( KnownLength(sLength) )
 import Data.Type.Map
   ( (:->)((:->)), InsertionSort, Value )
 import FIR.AST
   ( Code
   , Syntactic(fromAST)
   , pattern (:$)
+  , pattern View
   , pattern MkVector, pattern Mat, pattern UnMat
   , pattern Gather
   )
@@ -132,7 +136,7 @@ import qualified FIR.Definition as Def
 import FIR.Syntax.AST
   ( )
 import FIR.Syntax.Optics
-  ( )
+  ( KnownOptic(opticSing) )
 import FIR.Layout
   ( Layout(Locations)
   , Poke(SizeOf)
@@ -653,6 +657,30 @@ pattern Vec3 x y z <- (fromAST -> V3 x y z)
 pattern Vec4 :: forall a. PrimTy a => Code a -> Code a -> Code a -> Code a -> Code ( V 4 a )
 pattern Vec4 x y z w <- (fromAST -> V4 x y z w)
   where Vec4 x y z w = MkVector ( V4 x y z w )
+
+-- | Unpack a 2-component vector without pattern matching.
+unpackV2 :: PrimTy a => Code (V 2 a) -> (Code a, Code a)
+unpackV2 v =
+  ( View sLength (opticSing @(Index 0)) :$ v
+  , View sLength (opticSing @(Index 1)) :$ v
+  )
+
+-- | Unpack a 3-component vector without pattern matching.
+unpackV3 :: PrimTy a => Code (V 3 a) -> (Code a, Code a, Code a)
+unpackV3 v =
+  ( View sLength (opticSing @(Index 0)) :$ v
+  , View sLength (opticSing @(Index 1)) :$ v
+  , View sLength (opticSing @(Index 2)) :$ v
+  )
+
+-- | Unpack a 4-component vector without pattern matching.
+unpackV4 :: PrimTy a => Code (V 4 a) -> (Code a, Code a, Code a, Code a)
+unpackV4 v =
+  ( View sLength (opticSing @(Index 0)) :$ v
+  , View sLength (opticSing @(Index 1)) :$ v
+  , View sLength (opticSing @(Index 2)) :$ v
+  , View sLength (opticSing @(Index 3)) :$ v
+  )
 
 {-# COMPLETE Mat22 #-}
 pattern Mat22

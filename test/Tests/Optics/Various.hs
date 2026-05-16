@@ -24,6 +24,15 @@ import FIR
 import FIR.Syntax.Labels
 import Math.Linear
 
+-- Test data for array literal syntax
+myTable :: Array 3 Float
+myTable = $(arrayLit [1.0, 2.0, 3.0])
+
+myNestedTable :: Array 2 (Array 3 Float)
+myNestedTable = $(arrayLitE [[| $(arrayLit [1.0, 2.0, 3.0]) |]
+                            , [| $(arrayLit [4.0, 5.0, 6.0]) |]
+                            ])
+
 ------------------------------------------------
 -- program
 
@@ -84,5 +93,9 @@ program = Module do
     rtTest2 <- use @(Name "arr2" :.: Name "rt" :.: Index 6)
 
     #array @(Array 10 Float) #= (Lit $ MkArray (fromJust $ Vector.fromList [1,17,23,4,5,90,88,17,22,21]))
+    #array2 @(Array 3 Float) #= $(arrayLit [10.0, 20.0, 30.0])
+    #nested @(Array 2 (Array 3 Float)) #= $(arrayLitE [[| $(arrayLit [1.0, 2.0, 3.0]) |]
+                                                      , [| $(arrayLit [4.0, 5.0, 6.0]) |]
+                                                      ])
     #gl_Position .=  (rtTest1 * rtTest2 + abs lensTest) *^ ( mvp !*^ diagonal )
     #out_col .= vertexDataColour ^+^ row

@@ -205,6 +205,7 @@ library
           , FIR.Pipeline
           , FIR.Prelude
           , FIR.Prim.Array
+          , FIR.Prim.Array.Literal
           , FIR.Prim.Image
           , FIR.Prim.RayTracing
           , FIR.Prim.Struct
@@ -315,6 +316,7 @@ library
           , FIR.Pipeline
           , FIR.Prelude
           , FIR.Prim.Array
+          , FIR.Prim.Array.Literal
           , FIR.Prim.Image
           , FIR.Prim.RayTracing
           , FIR.Prim.Struct

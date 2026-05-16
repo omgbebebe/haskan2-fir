@@ -303,6 +303,10 @@ import FIR.Module
 import FIR.Pipeline
 import FIR.Prelude
 import FIR.Prim.Array
+import FIR.Prim.Array.Literal
+  ( arrayLit
+  , arrayLitE
+  )
 import FIR.Prim.Image
 import FIR.Prim.RayTracing
   hiding ( pattern RayQuery )
